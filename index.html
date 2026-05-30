@@ -1,0 +1,1552 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel Planificador</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #0f1117;
+  --bg2:      #181b24;
+  --bg3:      #1e2130;
+  --border:   #2a2e3e;
+  --text:     #e8eaf0;
+  --text2:    #8b90a4;
+  --text3:    #555a6e;
+  --accent:   #4f7cff;
+  --accent2:  #7b5ea7;
+  --urg:      #e05252;
+  --norm:     #e09a2f;
+  --baja:     #4a9e6b;
+  --nc-color: #4f7cff;
+  --cm-color: #7b5ea7;
+  --radius:   10px;
+  --font-mono: 'IBM Plex Mono', monospace;
+  --font-sans: 'IBM Plex Sans', sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  min-height: 100vh;
+}
+
+/* ── LOGIN ── */
+#login-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.login-box {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 40px 36px;
+  width: 100%;
+  max-width: 360px;
+}
+
+.login-logo {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--accent);
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  margin-bottom: 28px;
+}
+
+.login-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.login-sub {
+  font-size: 13px;
+  color: var(--text2);
+  margin-bottom: 28px;
+}
+
+.field-label {
+  display: block;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text2);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+input[type=text], input[type=date], select, textarea {
+  width: 100%;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  padding: 10px 14px;
+  outline: none;
+  transition: border-color .15s;
+}
+
+input[type=text]:focus, input[type=date]:focus, select:focus, textarea:focus {
+  border-color: var(--accent);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+}
+
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn-primary:hover { background: #3a67e8; border-color: #3a67e8; color: #fff; }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+.btn-danger { border-color: var(--urg); color: var(--urg); }
+.btn-danger:hover { background: rgba(224,82,82,.1); }
+.btn-full { width: 100%; justify-content: center; }
+
+/* ── APP ── */
+#app { display: none; }
+
+.topbar {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 0 20px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.topbar-logo {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--accent);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.topbar-user {
+  font-size: 12px;
+  color: var(--text2);
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── NO CONN ── */
+#no-conn-bar {
+  display: none;
+  background: rgba(224,82,82,.12);
+  border-bottom: 1px solid rgba(224,82,82,.3);
+  padding: 8px 20px;
+  font-size: 12px;
+  color: var(--urg);
+  font-family: var(--font-mono);
+}
+
+/* ── MAIN ── */
+.main {
+  padding: 20px;
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+/* ── COUNTERS ── */
+.counters {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.counter-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+
+.counter-label {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text2);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.counter-val {
+  font-size: 28px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+}
+
+/* ── SECTION ── */
+.section {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  user-select: none;
+}
+
+.section-header:hover { background: rgba(255,255,255,.02); }
+
+.section-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.section-title {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  flex: 1;
+}
+
+.section-hint {
+  font-size: 11px;
+  color: var(--text3);
+}
+
+.section-count {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text2);
+  background: var(--bg3);
+  border-radius: 99px;
+  padding: 1px 8px;
+}
+
+.section-body { display: block; }
+.section-body.collapsed { display: none; }
+
+/* ── TASK ROW ── */
+.task-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.task-row:last-child { border-bottom: none; }
+.task-main { flex: 1; min-width: 0; }
+
+.task-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.task-sub {
+  font-size: 11px;
+  color: var(--text2);
+  margin-top: 3px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* ── BADGES ── */
+.badge {
+  display: inline-block;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-weight: 500;
+  letter-spacing: .03em;
+  white-space: nowrap;
+}
+
+.badge-nc   { background: rgba(79,124,255,.15); color: #7fa8ff; border: 1px solid rgba(79,124,255,.3); }
+.badge-cm   { background: rgba(123,94,167,.15); color: #b08fd4; border: 1px solid rgba(123,94,167,.3); }
+.badge-notif{ background: rgba(224,82,82,.12);  color: #e87a7a; border: 1px solid rgba(224,82,82,.3); }
+.badge-sinos{ background: rgba(224,154,47,.12); color: #e8b86a; border: 1px solid rgba(224,154,47,.3); }
+
+.prio {
+  display: inline-block;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  cursor: pointer;
+  border: 1px dashed transparent;
+  transition: border-color .15s, opacity .15s;
+  white-space: nowrap;
+}
+
+.prio:hover { opacity: .8; border-color: currentColor; }
+.prio-urg  { background: rgba(224,82,82,.15);  color: var(--urg); }
+.prio-norm { background: rgba(224,154,47,.12); color: var(--norm); }
+.prio-baja { background: rgba(74,158,107,.12); color: var(--baja); }
+.prio-static { cursor: default; }
+.prio-static:hover { opacity: 1; border-color: transparent; }
+
+/* ── MODAL ── */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.6);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal-overlay.open { display: flex; }
+
+.modal {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 22px;
+  width: 100%;
+  max-width: 420px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.modal-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.modal-sub {
+  font-size: 12px;
+  color: var(--text2);
+  margin-bottom: 14px;
+  line-height: 1.5;
+}
+
+.field-group { margin-bottom: 14px; }
+
+.mec-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.mec-row select { flex: 1; }
+
+.ia-suggestion {
+  background: rgba(79,124,255,.08);
+  border: 1px solid rgba(79,124,255,.2);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text2);
+  display: none;
+}
+
+.ia-suggestion .ia-text { color: var(--text); font-weight: 500; margin-bottom: 6px; }
+.ia-suggestion .ia-actions { display: flex; gap: 6px; }
+
+.confirm-box {
+  background: rgba(224,154,47,.08);
+  border: 1px solid rgba(224,154,47,.2);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--norm);
+  display: none;
+}
+
+.modal-footer {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+
+/* ── PRIO PICKER ── */
+.prio-picker { display: flex; flex-direction: column; gap: 8px; }
+.prio-option {
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all .15s;
+}
+
+.prio-option:hover { transform: translateX(4px); }
+.prio-option.urg { border-color: rgba(224,82,82,.4); color: var(--urg); }
+.prio-option.urg:hover { background: rgba(224,82,82,.08); }
+.prio-option.norm { border-color: rgba(224,154,47,.4); color: var(--norm); }
+.prio-option.norm:hover { background: rgba(224,154,47,.08); }
+.prio-option.baja { border-color: rgba(74,158,107,.4); color: var(--baja); }
+.prio-option.baja:hover { background: rgba(74,158,107,.08); }
+
+/* ── IA PANEL ── */
+#ia-panel {
+  position: fixed;
+  right: -420px;
+  top: 56px;
+  width: 400px;
+  height: calc(100vh - 56px);
+  background: var(--bg2);
+  border-left: 1px solid var(--border);
+  z-index: 150;
+  display: flex;
+  flex-direction: column;
+  transition: right .25s ease;
+}
+
+#ia-panel.open { right: 0; }
+
+.ia-header {
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ia-title {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.ia-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ia-msg {
+  padding: 10px 13px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.55;
+  max-width: 90%;
+}
+
+.ia-msg.user {
+  background: rgba(79,124,255,.15);
+  color: #a0b8ff;
+  align-self: flex-end;
+  border: 1px solid rgba(79,124,255,.2);
+}
+
+.ia-msg.bot {
+  background: var(--bg3);
+  color: var(--text);
+  align-self: flex-start;
+  border: 1px solid var(--border);
+}
+
+.ia-input-area {
+  padding: 14px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.ia-input-area textarea {
+  flex: 1;
+  resize: none;
+  height: 44px;
+  font-size: 13px;
+  padding: 10px 12px;
+}
+
+/* ── LOADING ── */
+.spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,.2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .6s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15,17,23,.85);
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--text2);
+  font-family: var(--font-mono);
+}
+
+/* ── EMPTY STATE ── */
+.empty-state {
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--text3);
+  font-size: 12px;
+  font-family: var(--font-mono);
+}
+
+/* ── TOAST ── */
+#toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 10px 20px;
+  font-size: 13px;
+  color: var(--text);
+  z-index: 400;
+  transition: transform .25s ease;
+  white-space: nowrap;
+}
+
+#toast.show { transform: translateX(-50%) translateY(0); }
+#toast.ok   { border-color: var(--baja); color: var(--baja); }
+#toast.err  { border-color: var(--urg);  color: var(--urg); }
+
+@media (max-width: 600px) {
+  .counters { grid-template-columns: repeat(2, 1fr); }
+  #ia-panel { width: 100%; right: -100%; }
+  .task-row { gap: 8px; }
+}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loading">
+  <div class="spinner"></div>
+  <span id="loading-msg">Cargando...</span>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">● Mantenimiento</div>
+    <div class="login-title">Panel Planificador</div>
+    <div class="login-sub">Ingresá tu legajo para continuar</div>
+    <div class="field-group">
+      <label class="field-label">Legajo</label>
+      <input type="text" id="login-legajo" placeholder="Ej: 10295" autocomplete="off">
+    </div>
+    <div id="login-error" style="color:var(--urg);font-size:12px;margin-bottom:12px;display:none"></div>
+    <button class="btn btn-primary btn-full" onclick="doLogin()">Ingresar</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="topbar-logo">● Planificador</span>
+      <span class="topbar-user" id="topbar-user"></span>
+    </div>
+    <div class="topbar-right">
+      <button class="btn btn-sm" onclick="recargar()" id="btn-reload">↻ Actualizar</button>
+      <button class="btn btn-sm" onclick="toggleIA()">✦ IA</button>
+      <button class="btn btn-sm btn-primary" onclick="openModal('modal-nuevo')">+ Nuevo trabajo</button>
+    </div>
+  </div>
+
+  <!-- NO CONN -->
+  <div id="no-conn-bar">⚠ Sin conexión — los cambios no se guardarán</div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- COUNTERS -->
+    <div class="counters">
+      <div class="counter-card">
+        <div class="counter-label">Sin asignar</div>
+        <div class="counter-val" id="cnt-sinasignar" style="color:var(--accent)">—</div>
+      </div>
+      <div class="counter-card">
+        <div class="counter-label">Asignadas</div>
+        <div class="counter-val" id="cnt-asignadas">—</div>
+      </div>
+      <div class="counter-card">
+        <div class="counter-label">Pend. OS SAP</div>
+        <div class="counter-val" id="cnt-pendos" style="color:var(--urg)">—</div>
+      </div>
+      <div class="counter-card">
+        <div class="counter-label">Finalizadas</div>
+        <div class="counter-val" id="cnt-fin" style="color:var(--baja)">—</div>
+      </div>
+    </div>
+
+    <!-- SECCIÓN 1: Pendientes de asignar -->
+    <div class="section">
+      <div class="section-header" onclick="toggleSection('sec-pend')">
+        <div class="section-dot" style="background:var(--accent)"></div>
+        <div class="section-title">Pendientes de asignar</div>
+        <div class="section-hint">NC: solo asignar · CM: editar o asignar</div>
+        <div class="section-count" id="sc-pend">0</div>
+      </div>
+      <div class="section-body" id="sec-pend"></div>
+    </div>
+
+    <!-- SECCIÓN 2: Asignadas -->
+    <div class="section">
+      <div class="section-header" onclick="toggleSection('sec-asig')">
+        <div class="section-dot" style="background:var(--norm)"></div>
+        <div class="section-title">Asignadas</div>
+        <div class="section-hint">Clic en prioridad para cambiar</div>
+        <div class="section-count" id="sc-asig">0</div>
+      </div>
+      <div class="section-body" id="sec-asig"></div>
+    </div>
+
+    <!-- SECCIÓN 3: Pendientes de OS -->
+    <div class="section">
+      <div class="section-header" onclick="toggleSection('sec-os')">
+        <div class="section-dot" style="background:var(--urg)"></div>
+        <div class="section-title">Pendientes de OS SAP</div>
+        <div class="section-hint">Notificadas primero</div>
+        <div class="section-count" id="sc-os">0</div>
+      </div>
+      <div class="section-body" id="sec-os"></div>
+    </div>
+
+    <!-- SECCIÓN 4: Finalizadas -->
+    <div class="section">
+      <div class="section-header" onclick="toggleSection('sec-fin')">
+        <div class="section-dot" style="background:var(--baja)"></div>
+        <div class="section-title">Finalizadas</div>
+        <div class="section-hint">No editables</div>
+        <div class="section-count" id="sc-fin">0</div>
+      </div>
+      <div class="section-body collapsed" id="sec-fin"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- IA PANEL -->
+<div id="ia-panel">
+  <div class="ia-header">
+    <span class="ia-title">✦ Asistente IA</span>
+    <button class="btn btn-sm" onclick="toggleIA()">✕</button>
+  </div>
+  <div class="ia-messages" id="ia-messages">
+    <div class="ia-msg bot">Hola, soy tu asistente de planificación. Podés preguntarme sobre tareas pendientes, estados, mecánicos o cualquier consulta sobre el panel.</div>
+  </div>
+  <div class="ia-input-area">
+    <textarea id="ia-input" placeholder="Preguntá algo..." onkeydown="iaKeydown(event)"></textarea>
+    <button class="btn btn-primary btn-sm" onclick="enviarIA()">↑</button>
+  </div>
+</div>
+
+<!-- MODAL: ASIGNAR -->
+<div class="modal-overlay" id="modal-asignar">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Asignar tarea</div>
+      <button class="btn btn-sm" onclick="closeModal('modal-asignar')">✕</button>
+    </div>
+    <div class="modal-sub" id="asignar-info"></div>
+    <div class="field-group">
+      <label class="field-label">Mecánicos</label>
+      <div id="asignar-mecs"></div>
+      <button class="btn btn-sm" style="margin-top:6px" onclick="addMecRow('asignar-mecs')">+ Agregar mecánico</button>
+    </div>
+    <div class="field-group">
+      <label class="field-label">Prioridad</label>
+      <select id="asignar-prio">
+        <option value="Urgente">Urgente</option>
+        <option value="Normal" selected>Normal</option>
+        <option value="Baja">Baja</option>
+      </select>
+    </div>
+    <div class="field-group">
+      <label class="field-label">Fecha de referencia</label>
+      <input type="date" id="asignar-fecha">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-sm" onclick="closeModal('modal-asignar')">Cancelar</button>
+      <button class="btn btn-sm btn-primary" onclick="confirmarAsignar()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: EDITAR ASIGNADA -->
+<div class="modal-overlay" id="modal-editar">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Editar tarea</div>
+      <button class="btn btn-sm" onclick="closeModal('modal-editar')">✕</button>
+    </div>
+    <div class="modal-sub" id="editar-info"></div>
+    <div class="field-group">
+      <label class="field-label">Mecánicos</label>
+      <div id="editar-mecs"></div>
+      <button class="btn btn-sm" style="margin-top:6px" onclick="addMecRow('editar-mecs')">+ Agregar mecánico</button>
+    </div>
+    <div class="field-group">
+      <label class="field-label">Fecha de referencia</label>
+      <input type="date" id="editar-fecha">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-sm" onclick="closeModal('modal-editar')">Cancelar</button>
+      <button class="btn btn-sm btn-primary" onclick="confirmarEditar()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: PRIORIDAD -->
+<div class="modal-overlay" id="modal-prio">
+  <div class="modal" style="max-width:300px">
+    <div class="modal-header">
+      <div class="modal-title">Cambiar prioridad</div>
+      <button class="btn btn-sm" onclick="closeModal('modal-prio')">✕</button>
+    </div>
+    <div class="prio-picker">
+      <div class="prio-option urg" onclick="setPrioridad('Urgente')">🔴 Urgente</div>
+      <div class="prio-option norm" onclick="setPrioridad('Normal')">🟡 Normal</div>
+      <div class="prio-option baja" onclick="setPrioridad('Baja')">🟢 Baja</div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: OS SAP -->
+<div class="modal-overlay" id="modal-os">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-header">
+      <div class="modal-title">Cargar OS SAP</div>
+      <button class="btn btn-sm" onclick="closeModal('modal-os')">✕</button>
+    </div>
+    <div class="modal-sub" id="os-info"></div>
+    <div class="field-group">
+      <label class="field-label">Número de OS SAP</label>
+      <input type="text" id="os-input" placeholder="Ej: 45006570" oninput="osInputChange()">
+    </div>
+    <div class="confirm-box" id="os-confirm">
+      ⚠ ¿Confirmás el número <strong id="os-preview"></strong>?
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-sm" onclick="closeModal('modal-os')">Cancelar</button>
+      <button class="btn btn-sm btn-primary" onclick="confirmarOS()">Sí, guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: NUEVO TRABAJO -->
+<div class="modal-overlay" id="modal-nuevo">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Nuevo trabajo</div>
+      <button class="btn btn-sm" onclick="closeModal('modal-nuevo')">✕</button>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">Descripción</label>
+      <div style="display:flex;gap:6px">
+        <input type="text" id="nuevo-desc" placeholder="Escribí o dictá..." style="flex:1" oninput="updateCodigo()">
+        <button class="btn btn-sm" onclick="dictarCampo('nuevo-desc','nuevo-desc-ia')" title="Dictar">🎤</button>
+      </div>
+      <div class="ia-suggestion" id="nuevo-desc-ia">
+        <div class="ia-text" id="nuevo-desc-ia-text"></div>
+        <div class="ia-actions">
+          <button class="btn btn-sm btn-primary" onclick="aceptarIASugerencia('nuevo-desc','nuevo-desc-ia')">Aceptar</button>
+          <button class="btn btn-sm" onclick="document.getElementById('nuevo-desc-ia').style.display='none'">Descartar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">Sector</label>
+      <div style="display:flex;gap:6px">
+        <select id="nuevo-sector" style="flex:1" onchange="updateCodigo()">
+          <option value="">Seleccionar...</option>
+        </select>
+        <button class="btn btn-sm" onclick="dictarSector()" title="Dictar sector">🎤</button>
+      </div>
+      <div class="ia-suggestion" id="nuevo-sector-ia">
+        <div class="ia-text" style="margin-bottom:8px;color:var(--text2)">Seleccioná el sector más aproximado:</div>
+        <div id="nuevo-sector-opciones" style="display:flex;flex-direction:column;gap:4px"></div>
+        <button class="btn btn-sm" style="margin-top:6px" onclick="document.getElementById('nuevo-sector-ia').style.display='none'">Cerrar</button>
+      </div>
+    </div>
+
+    <div class="field-group" id="codigo-preview-wrap" style="display:none">
+      <label class="field-label">Código generado</label>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:var(--font-mono);font-size:11px;color:var(--text2);word-break:break-all" id="codigo-preview"></div>
+    </div>
+
+    <div class="modal-footer" style="justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <button class="btn btn-sm" onclick="closeModal('modal-nuevo')">Cancelar</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-sm" onclick="guardarNuevo(false)">Guardar sin asignar</button>
+        <button class="btn btn-sm btn-primary" onclick="guardarNuevo(true)">Guardar y asignar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// CONFIG
+// ============================================================
+const URL_PLAN = 'https://script.google.com/macros/s/AKfycbyc3QGQMkCvcsdYuQMj9Dh9lM0TC9BjBX2qkivi2IWyTIsfmPbtKl74y_6Tc3AZPQKQ/exec';
+const CLAUDE_MODEL = 'claude-sonnet-4-20250514';
+
+// ============================================================
+// ESTADO
+// ============================================================
+let usuario    = null;
+let sectores   = [];
+let tecnicos   = [];
+let tareas     = [];
+let ncs        = [];
+let currentCodigo   = null;
+let currentAccion   = null;
+let iaContext  = [];
+
+// ============================================================
+// HELPERS
+// ============================================================
+function showLoading(msg) {
+  document.getElementById('loading').style.display = 'flex';
+  document.getElementById('loading-msg').textContent = msg || 'Cargando...';
+}
+
+function hideLoading() {
+  document.getElementById('loading').style.display = 'none';
+}
+
+function toast(msg, tipo = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show ' + tipo;
+  setTimeout(() => { t.className = ''; }, 3000);
+}
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function toggleSection(id) {
+  document.getElementById(id).classList.toggle('collapsed');
+}
+
+function checkOnline() {
+  const bar = document.getElementById('no-conn-bar');
+  bar.style.display = navigator.onLine ? 'none' : 'block';
+  return navigator.onLine;
+}
+
+async function callScript(accion, data = {}) {
+  const resp = await fetch(URL_PLAN, {
+    method: 'POST',
+    body: JSON.stringify({ accion, ...data }),
+    headers: { 'Content-Type': 'application/json' }
+  });
+  return resp.json();
+}
+
+function prioClass(p) {
+  if (!p) return 'prio-baja';
+  const v = p.toLowerCase();
+  if (v === 'urgente') return 'prio-urg';
+  if (v === 'normal')  return 'prio-norm';
+  return 'prio-baja';
+}
+
+function nombresToStr(mecs) {
+  return mecs.map(l => {
+    const t = tecnicos.find(x => x.legajo === l);
+    return t ? t.nombre.split(' ')[0] : l;
+  }).join(', ');
+}
+
+function today() {
+  return new Date().toISOString().split('T')[0];
+}
+
+// ============================================================
+// LOGIN
+// ============================================================
+async function doLogin() {
+  const legajo = document.getElementById('login-legajo').value.trim();
+  if (!legajo) return;
+  showLoading('Verificando...');
+  try {
+    const res = await callScript('login', { legajo });
+    if (res.ok) {
+      usuario = res.data;
+      document.getElementById('topbar-user').textContent = res.data.nombre;
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      await cargarDatos();
+    } else {
+      document.getElementById('login-error').textContent = res.error || 'Legajo no encontrado';
+      document.getElementById('login-error').style.display = 'block';
+    }
+  } catch(e) {
+    document.getElementById('login-error').textContent = 'Error de conexión';
+    document.getElementById('login-error').style.display = 'block';
+  }
+  hideLoading();
+}
+
+document.getElementById('login-legajo').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+
+// ============================================================
+// CARGAR DATOS
+// ============================================================
+async function cargarDatos() {
+  showLoading('Cargando datos...');
+  checkOnline();
+  try {
+    const [resDatos, resTareas, resNCs] = await Promise.all([
+      callScript('getDatos'),
+      callScript('getTareas'),
+      callScript('getNCs')
+    ]);
+
+    if (resDatos.ok) {
+      sectores = resDatos.data.sectores;
+      tecnicos = resDatos.data.tecnicos;
+      poblarSectores();
+    }
+
+    if (resTareas.ok) tareas = resTareas.data;
+    if (resNCs.ok)    ncs    = resNCs.data;
+
+    renderTodo();
+  } catch(e) {
+    toast('Error al cargar datos', 'err');
+  }
+  hideLoading();
+}
+
+async function recargar() {
+  const btn = document.getElementById('btn-reload');
+  btn.textContent = '↻ ...';
+  await cargarDatos();
+  btn.textContent = '↻ Actualizar';
+  toast('Datos actualizados', 'ok');
+}
+
+function poblarSectores() {
+  const sel = document.getElementById('nuevo-sector');
+  sel.innerHTML = '<option value="">Seleccionar...</option>';
+  sectores.forEach(s => {
+    const o = document.createElement('option');
+    o.value = s; o.textContent = s;
+    sel.appendChild(o);
+  });
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+function renderTodo() {
+  // Pendientes de asignar = NCs + CMs sin asignar
+  const cmSinAsignar = tareas.filter(t => t.tipo === 'CM' && t.estado === 'sin_asignar');
+  const pendientes   = [...ncs, ...cmSinAsignar];
+
+  const asignadas    = tareas.filter(t => t.estado === 'asignada');
+  const pendOS       = tareas.filter(t => t.estado !== 'sin_asignar' && t.estado !== 'finalizada' && !t.os_sap);
+  // Notificadas sin OS primero
+  const pendOSSort   = [...pendOS].sort((a,b) => {
+    const aNotif = (a.mecsDetalle || []).some(m => m.estado === 'notificada') ? 0 : 1;
+    const bNotif = (b.mecsDetalle || []).some(m => m.estado === 'notificada') ? 0 : 1;
+    return aNotif - bNotif;
+  });
+  const finalizadas  = tareas.filter(t => t.estado === 'finalizada');
+
+  // Counters
+  document.getElementById('cnt-sinasignar').textContent = pendientes.length;
+  document.getElementById('cnt-asignadas').textContent  = asignadas.length;
+  document.getElementById('cnt-pendos').textContent     = pendOSSort.length;
+  document.getElementById('cnt-fin').textContent        = finalizadas.length;
+  document.getElementById('sc-pend').textContent        = pendientes.length;
+  document.getElementById('sc-asig').textContent        = asignadas.length;
+  document.getElementById('sc-os').textContent          = pendOSSort.length;
+  document.getElementById('sc-fin').textContent         = finalizadas.length;
+
+  renderSectionPend(pendientes);
+  renderSectionAsig(asignadas);
+  renderSectionOS(pendOSSort);
+  renderSectionFin(finalizadas);
+}
+
+function renderSectionPend(items) {
+  const el = document.getElementById('sec-pend');
+  if (!items.length) { el.innerHTML = '<div class="empty-state">Sin tareas pendientes</div>'; return; }
+  el.innerHTML = items.map(item => {
+    const isNC = item.tipo === 'NC' || !item.tipo;
+    const tipo = isNC ? 'NC' : 'CM';
+    const codigo = item.codigo;
+    const partes = codigo.split('_');
+    const titulo = isNC
+      ? partes.slice(0, -1).join(' — ')
+      : partes.slice(0, -1).join(' — ');
+    const sub = item.punto || '';
+    return `
+    <div class="task-row">
+      <div class="task-main">
+        <div class="task-title">${titulo}</div>
+        <div class="task-sub">
+          <span class="badge badge-${tipo.toLowerCase()}">${tipo}</span>
+          ${sub ? `<span>${sub}</span>` : ''}
+          <span style="color:var(--text3);font-size:10px">${codigo.split('_').pop()}</span>
+        </div>
+      </div>
+      ${!isNC ? `<button class="btn btn-sm" onclick="abrirEditar('${codigo}')">Editar</button>` : ''}
+      <button class="btn btn-sm btn-primary" onclick="abrirAsignar('${codigo}','${tipo}')">Asignar</button>
+    </div>`;
+  }).join('');
+}
+
+function renderSectionAsig(items) {
+  const el = document.getElementById('sec-asig');
+  if (!items.length) { el.innerHTML = '<div class="empty-state">Sin tareas asignadas</div>'; return; }
+  el.innerHTML = items.map(t => {
+    const titulo = t.descripcion.split('_').join(' ');
+    const mecs   = nombresToStr(t.mecanicos);
+    const pClass = prioClass(t.prioridad);
+    return `
+    <div class="task-row">
+      <div class="task-main">
+        <div class="task-title">${titulo}</div>
+        <div class="task-sub">
+          <span class="badge badge-${t.tipo.toLowerCase()}">${t.tipo}</span>
+          <span>${mecs}</span>
+          ${t.fechaRef ? `<span>${t.fechaRef}</span>` : ''}
+        </div>
+      </div>
+      <span class="prio ${pClass}" onclick="abrirPrioridad('${t.codigo}')">${t.prioridad || 'Normal'}</span>
+      <button class="btn btn-sm" onclick="abrirEditarAsig('${t.codigo}')">Editar</button>
+    </div>`;
+  }).join('');
+}
+
+function renderSectionOS(items) {
+  const el = document.getElementById('sec-os');
+  if (!items.length) { el.innerHTML = '<div class="empty-state">Sin pendientes de OS</div>'; return; }
+  el.innerHTML = items.map(t => {
+    const titulo  = t.descripcion.split('_').join(' ');
+    const mecs    = nombresToStr(t.mecanicos);
+    const notif   = (t.mecsDetalle||[]).some(m => m.estado === 'notificada');
+    const pClass  = prioClass(t.prioridad);
+    return `
+    <div class="task-row">
+      <div class="task-main">
+        <div class="task-title">${titulo}</div>
+        <div class="task-sub">
+          <span class="badge badge-${t.tipo.toLowerCase()}">${t.tipo}</span>
+          ${notif ? '<span class="badge badge-notif">Notificada</span>' : '<span class="badge badge-sinos">Sin notif.</span>'}
+          <span>${mecs}</span>
+        </div>
+      </div>
+      <span class="prio ${pClass}" onclick="abrirPrioridad('${t.codigo}')">${t.prioridad || 'Normal'}</span>
+      <button class="btn btn-sm btn-primary" onclick="abrirOS('${t.codigo}')">Cargar OS</button>
+    </div>`;
+  }).join('');
+}
+
+function renderSectionFin(items) {
+  const el = document.getElementById('sec-fin');
+  if (!items.length) { el.innerHTML = '<div class="empty-state">Sin tareas finalizadas</div>'; return; }
+  el.innerHTML = items.map(t => {
+    const titulo = t.descripcion.split('_').join(' ');
+    const mecs   = nombresToStr(t.mecanicos);
+    const pClass = prioClass(t.prioridad);
+    return `
+    <div class="task-row">
+      <div class="task-main">
+        <div class="task-title">${titulo}</div>
+        <div class="task-sub">
+          <span class="badge badge-${t.tipo.toLowerCase()}">${t.tipo}</span>
+          <span>${mecs}</span>
+          ${t.os_sap ? `<span>OS: ${t.os_sap}</span>` : ''}
+        </div>
+      </div>
+      <span class="prio ${pClass} prio-static">${t.prioridad || 'Normal'}</span>
+      <span style="font-size:11px;color:var(--text3);font-style:italic">No editable</span>
+    </div>`;
+  }).join('');
+}
+
+// ============================================================
+// MODAL: ASIGNAR
+// ============================================================
+function abrirAsignar(codigo, tipo) {
+  currentCodigo = codigo;
+  currentAccion = 'asignar';
+  const partes = codigo.split('_');
+  const titulo = partes.slice(0, -1).join(' — ');
+  document.getElementById('asignar-info').textContent = titulo + ' · ' + tipo;
+  document.getElementById('asignar-fecha').value = today();
+  document.getElementById('asignar-mecs').innerHTML = '';
+  addMecRow('asignar-mecs', true);
+  openModal('modal-asignar');
+}
+
+async function confirmarAsignar() {
+  if (!checkOnline()) { toast('Sin conexión', 'err'); return; }
+  const mecanicos = getMecsFromContainer('asignar-mecs');
+  if (!mecanicos.length) { toast('Seleccioná al menos un mecánico', 'err'); return; }
+  const prioridad = document.getElementById('asignar-prio').value;
+  const fecha     = document.getElementById('asignar-fecha').value;
+  showLoading('Asignando...');
+  try {
+    const res = await callScript('asignarTarea', {
+      codigo: currentCodigo,
+      mecanicos,
+      prioridad,
+      fechaReferencia: fecha
+    });
+    if (res.ok) {
+      toast('Tarea asignada ✓', 'ok');
+      closeModal('modal-asignar');
+      await cargarDatos();
+    } else {
+      toast(res.error || 'Error al asignar', 'err');
+    }
+  } catch(e) { toast('Error de conexión', 'err'); }
+  hideLoading();
+}
+
+// ============================================================
+// MODAL: EDITAR CM SIN ASIGNAR
+// ============================================================
+function abrirEditar(codigo) {
+  currentCodigo = codigo;
+  openModal('modal-nuevo');
+  const tarea = tareas.find(t => t.codigo === codigo);
+  if (!tarea) return;
+  const partes = tarea.descripcion.split('_');
+  document.getElementById('nuevo-desc').value   = partes.slice(0, -1).join(' ');
+  const sector = partes[partes.length - 1];
+  const sel = document.getElementById('nuevo-sector');
+  for (let o of sel.options) { if (o.value === sector) { sel.value = sector; break; } }
+  updateCodigo();
+}
+
+// ============================================================
+// MODAL: EDITAR ASIGNADA (mecánicos)
+// ============================================================
+function abrirEditarAsig(codigo) {
+  currentCodigo = codigo;
+  const tarea = tareas.find(t => t.codigo === codigo);
+  if (!tarea) return;
+  document.getElementById('editar-info').textContent = tarea.descripcion.split('_').join(' ');
+  document.getElementById('editar-fecha').value = tarea.fechaRef || today();
+  const cont = document.getElementById('editar-mecs');
+  cont.innerHTML = '';
+  (tarea.mecanicos || []).forEach((leg, i) => {
+    const notificado = (tarea.mecsDetalle || []).find(m => m.legajo === leg && m.estado === 'notificada');
+    addMecRow('editar-mecs', i === 0, leg, !!notificado);
+  });
+  openModal('modal-editar');
+}
+
+async function confirmarEditar() {
+  if (!checkOnline()) { toast('Sin conexión', 'err'); return; }
+  const tarea = tareas.find(t => t.codigo === currentCodigo);
+  if (!tarea) return;
+  const mecsActuales  = tarea.mecanicos || [];
+  const mecsEnForm    = getMecsFromContainer('editar-mecs');
+  const mecanicosAgregar = mecsEnForm.filter(m => !mecsActuales.includes(m));
+  const mecanicosQuitar  = mecsActuales.filter(m => !mecsEnForm.includes(m));
+  const fecha = document.getElementById('editar-fecha').value;
+  showLoading('Guardando...');
+  try {
+    const res = await callScript('editarTarea', {
+      codigo: currentCodigo,
+      mecanicosAgregar,
+      mecanicosQuitar,
+      fechaReferencia: fecha
+    });
+    if (res.ok) {
+      toast('Tarea actualizada ✓', 'ok');
+      closeModal('modal-editar');
+      await cargarDatos();
+    } else {
+      toast(res.error || 'Error al editar', 'err');
+    }
+  } catch(e) { toast('Error de conexión', 'err'); }
+  hideLoading();
+}
+
+// ============================================================
+// MODAL: PRIORIDAD
+// ============================================================
+function abrirPrioridad(codigo) {
+  currentCodigo = codigo;
+  openModal('modal-prio');
+}
+
+async function setPrioridad(prio) {
+  if (!checkOnline()) { toast('Sin conexión', 'err'); return; }
+  closeModal('modal-prio');
+  showLoading('Guardando...');
+  try {
+    const res = await callScript('cambiarPrioridad', { codigo: currentCodigo, prioridad: prio });
+    if (res.ok) {
+      toast('Prioridad actualizada ✓', 'ok');
+      await cargarDatos();
+    } else {
+      toast(res.error || 'Error', 'err');
+    }
+  } catch(e) { toast('Error de conexión', 'err'); }
+  hideLoading();
+}
+
+// ============================================================
+// MODAL: OS SAP
+// ============================================================
+function abrirOS(codigo) {
+  currentCodigo = codigo;
+  const tarea = tareas.find(t => t.codigo === codigo);
+  document.getElementById('os-info').textContent = tarea ? tarea.descripcion.split('_').join(' ') : codigo;
+  document.getElementById('os-input').value = '';
+  document.getElementById('os-confirm').style.display = 'none';
+  openModal('modal-os');
+}
+
+function osInputChange() {
+  const val = document.getElementById('os-input').value.trim();
+  const box = document.getElementById('os-confirm');
+  document.getElementById('os-preview').textContent = val;
+  box.style.display = val ? 'block' : 'none';
+}
+
+async function confirmarOS() {
+  if (!checkOnline()) { toast('Sin conexión', 'err'); return; }
+  const os = document.getElementById('os-input').value.trim();
+  if (!os) { toast('Ingresá el número de OS', 'err'); return; }
+  showLoading('Guardando OS...');
+  try {
+    const res = await callScript('cargarOS', { codigo: currentCodigo, os_sap: os });
+    if (res.ok) {
+      toast(res.data?.finalizada ? 'OS cargada — tarea finalizada ✓' : 'OS cargada ✓', 'ok');
+      closeModal('modal-os');
+      await cargarDatos();
+    } else {
+      toast(res.error || 'Error', 'err');
+    }
+  } catch(e) { toast('Error de conexión', 'err'); }
+  hideLoading();
+}
+
+// ============================================================
+// MODAL: NUEVO TRABAJO
+// ============================================================
+let codigoNuevo = null;
+
+function updateCodigo() {
+  const desc   = document.getElementById('nuevo-desc').value.trim().replace(/\s+/g,'_').toLowerCase();
+  const sector = document.getElementById('nuevo-sector').value.replace(/\s+/g,'_');
+  const wrap   = document.getElementById('codigo-preview-wrap');
+  if (desc && sector) {
+    const ts = Date.now();
+    codigoNuevo = desc + '_' + sector + '_CM' + ts;
+    document.getElementById('codigo-preview').textContent = codigoNuevo;
+    wrap.style.display = 'block';
+  } else {
+    wrap.style.display = 'none';
+    codigoNuevo = null;
+  }
+}
+
+async function guardarNuevo(asignar) {
+  if (!checkOnline()) { toast('Sin conexión', 'err'); return; }
+  const desc   = document.getElementById('nuevo-desc').value.trim();
+  const sector = document.getElementById('nuevo-sector').value;
+  if (!desc || !sector) { toast('Completá descripción y sector', 'err'); return; }
+
+  if (!asignar) {
+    showLoading('Guardando...');
+    try {
+      const res = await callScript('crearTrabajo', { descripcion: desc, sector, asignar: false });
+      if (res.ok) {
+        toast('Trabajo guardado ✓', 'ok');
+        closeModal('modal-nuevo');
+        document.getElementById('nuevo-desc').value = '';
+        document.getElementById('nuevo-sector').value = '';
+        document.getElementById('codigo-preview-wrap').style.display = 'none';
+        await cargarDatos();
+      } else { toast(res.error || 'Error', 'err'); }
+    } catch(e) { toast('Error de conexión', 'err'); }
+    hideLoading();
+  } else {
+    // Abrir modal de asignación con el nuevo trabajo
+    currentCodigo = codigoNuevo;
+    currentAccion = 'nuevo';
+    document.getElementById('asignar-info').textContent = desc + ' — ' + sector;
+    document.getElementById('asignar-fecha').value = today();
+    document.getElementById('asignar-mecs').innerHTML = '';
+    addMecRow('asignar-mecs', true);
+    closeModal('modal-nuevo');
+    openModal('modal-asignar');
+  }
+}
+
+// Al confirmar asignar desde nuevo trabajo
+const _confirmarAsignarOrig = confirmarAsignar;
+// (ya maneja ambos casos con currentAccion)
+
+// ============================================================
+// MECÁNICOS — helpers
+// ============================================================
+function addMecRow(containerId, isFirst = false, legajoDefault = '', bloqueado = false) {
+  const cont = document.getElementById(containerId);
+  const div  = document.createElement('div');
+  div.className = 'mec-row';
+
+  const sel = document.createElement('select');
+  sel.style.flex = '1';
+  tecnicos.forEach(t => {
+    const o = document.createElement('option');
+    o.value = t.legajo;
+    o.textContent = t.legajo + ' — ' + t.nombre;
+    if (legajoDefault && t.legajo === legajoDefault) o.selected = true;
+    sel.appendChild(o);
+  });
+
+  if (bloqueado) {
+    sel.disabled = true;
+    sel.style.opacity = '.5';
+    const span = document.createElement('span');
+    span.style.cssText = 'font-size:10px;color:var(--text3);white-space:nowrap';
+    span.textContent = 'notificado';
+    div.appendChild(sel);
+    div.appendChild(span);
+  } else {
+    div.appendChild(sel);
+    if (!isFirst) {
+      const btn = document.createElement('button');
+      btn.className = 'btn btn-sm btn-danger';
+      btn.textContent = '✕';
+      btn.onclick = () => div.remove();
+      div.appendChild(btn);
+    }
+  }
+  cont.appendChild(div);
+}
+
+function getMecsFromContainer(containerId) {
+  const cont = document.getElementById(containerId);
+  const sels = cont.querySelectorAll('select:not([disabled])');
+  return Array.from(sels).map(s => s.value).filter(v => v);
+}
+
+// ============================================================
+// VOZ + IA
+// ============================================================
+let recognition = null;
+
+function dictarCampo(inputId, sugerenciaId) {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    toast('Tu navegador no soporta dictado por voz', 'err');
+    return;
+  }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SR();
+  recognition.lang = 'es-ES';
+  recognition.interimResults = false;
+  recognition.onresult = async (e) => {
+    const texto = e.results[0][0].transcript;
+    // Pedir a IA que reformatee
+    const sugerencia = await mejorarDescripcionIA(texto);
+    document.getElementById(sugerenciaId + '-text').textContent = sugerencia;
+    document.getElementById(sugerenciaId).style.display = 'block';
+  };
+  recognition.onerror = () => toast('Error en dictado', 'err');
+  recognition.start();
+  toast('Dictando... hablá ahora', '');
+}
+
+function aceptarIASugerencia(inputId, sugerenciaId) {
+  const texto = document.getElementById(sugerenciaId + '-text').textContent;
+  document.getElementById(inputId).value = texto;
+  document.getElementById(sugerenciaId).style.display = 'none';
+  updateCodigo();
+}
+
+async function dictarSector() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    toast('Tu navegador no soporta dictado por voz', 'err');
+    return;
+  }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SR();
+  recognition.lang = 'es-ES';
+  recognition.interimResults = false;
+  recognition.onresult = async (e) => {
+    const texto = e.results[0][0].transcript;
+    const opciones = await buscarSectoresIA(texto);
+    mostrarOpcionesSector(opciones);
+  };
+  recognition.onerror = () => toast('Error en dictado', 'err');
+  recognition.start();
+  toast('Dictando sector... hablá ahora', '');
+}
+
+function mostrarOpcionesSector(opciones) {
+  const cont = document.getElementById('nuevo-sector-opciones');
+  cont.innerHTML = '';
+  opciones.forEach(s => {
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-sm';
+    btn.textContent = s;
+    btn.onclick = () => {
+      document.getElementById('nuevo-sector').value = s;
+      document.getElementById('nuevo-sector-ia').style.display = 'none';
+      updateCodigo();
+    };
+    cont.appendChild(btn);
+  });
+  document.getElementById('nuevo-sector-ia').style.display = 'block';
+}
+
+// IA deshabilitada en esta versión — se activa en la siguiente etapa
+async function mejorarDescripcionIA(texto) {
+  // Por ahora devuelve el texto tal cual sin procesar con IA
+  return texto;
+}
+
+async function buscarSectoresIA(texto) {
+  // Por ahora filtra localmente por similitud básica
+  const t = texto.toLowerCase();
+  const matches = sectores.filter(s => {
+    const palabras = t.split(' ');
+    return palabras.some(p => p.length > 2 && s.toLowerCase().includes(p));
+  });
+  return matches.length ? matches.slice(0, 3) : sectores.slice(0, 3);
+}
+
+// ============================================================
+// ASISTENTE IA
+// ============================================================
+function toggleIA() {
+  document.getElementById('ia-panel').classList.toggle('open');
+}
+
+function iaKeydown(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviarIA(); }
+}
+
+async function enviarIA() {
+  const input = document.getElementById('ia-input');
+  const msg   = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+  addIAMsg(msg, 'user');
+  addIAMsg('El asistente IA se activa en la próxima etapa. Por ahora podés usar el panel para gestionar todas las tareas normalmente.', 'bot');
+  document.getElementById('ia-messages').scrollTop = 9999;
+}
+
+function addIAMsg(text, role) {
+  const div = document.createElement('div');
+  div.className = 'ia-msg ' + role;
+  div.textContent = text;
+  document.getElementById('ia-messages').appendChild(div);
+  document.getElementById('ia-messages').scrollTop = 9999;
+  return div;
+}
+
+// ============================================================
+// ONLINE/OFFLINE
+// ============================================================
+window.addEventListener('online',  () => { document.getElementById('no-conn-bar').style.display = 'none'; });
+window.addEventListener('offline', () => { document.getElementById('no-conn-bar').style.display = 'block'; });
+
+// ============================================================
+// INIT
+// ============================================================
+hideLoading();
+</script>
+</body>
+</html>
