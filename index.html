@@ -1070,11 +1070,20 @@ function renderSectionPend(items) {
     const isNC = item.tipo === 'NC' || !item.tipo;
     const tipo = isNC ? 'NC' : 'CM';
     const codigo = item.codigo;
-    const partes = codigo.split('_');
-    const titulo = isNC
-      ? partes.slice(0, -1).join(' — ')
-      : partes.slice(0, -1).join(' — ');
-    const sub = item.punto || '';
+    // Para CM: descripcion_sector_CMfecha_ms -> mostrar desc y sector con espacios
+    // Para NC: obs_sector_RIfecha -> mostrar partes separadas
+    // Extraer partes del codigo: descripcion_sector_CMfecha o descripcion_sector_RIfecha
+    const getSepIdx = (c) => {
+      const cm = c.indexOf('_CM'); const ri = c.lastIndexOf('_RI');
+      return cm > 0 ? cm : ri;
+    };
+    const sepIdx = getSepIdx(codigo);
+    const partesCodigo = sepIdx > 0 ? codigo.substring(0, sepIdx).split('_') : codigo.split('_');
+    // ultima parte antes del CM/RI es el sector, el resto es la descripcion
+    const sectorParte = partesCodigo.slice(-1)[0] || '';
+    const descParte   = partesCodigo.slice(0, -1).join(' ') || partesCodigo.join(' ');
+    const titulo = descParte || sectorParte;
+    const sub = sectorParte || item.punto || '';
     return `
     <div class="task-row">
       <div class="task-main">
@@ -1095,7 +1104,7 @@ function renderSectionAsig(items) {
   const el = document.getElementById('sec-asig');
   if (!items.length) { el.innerHTML = '<div class="empty-state">Sin tareas asignadas</div>'; return; }
   el.innerHTML = items.map(t => {
-    const titulo = t.descripcion.split('_').join(' ');
+    const titulo = t.descripcion.includes('_CM') ? t.descripcion.substring(0, t.descripcion.indexOf('_CM')).replace(/_/g,' ') + ' — ' + t.descripcion.substring(t.descripcion.lastIndexOf('_')+1) : t.descripcion.split('_').join(' ');
     const mecs   = nombresToStr(t.mecanicos);
     const pClass = prioClass(t.prioridad);
     return `
@@ -1142,7 +1151,7 @@ function renderSectionFin(items) {
   const el = document.getElementById('sec-fin');
   if (!items.length) { el.innerHTML = '<div class="empty-state">Sin tareas finalizadas</div>'; return; }
   el.innerHTML = items.map(t => {
-    const titulo = t.descripcion.split('_').join(' ');
+    const titulo = t.descripcion.includes('_CM') ? t.descripcion.substring(0, t.descripcion.indexOf('_CM')).replace(/_/g,' ') + ' — ' + t.descripcion.substring(t.descripcion.lastIndexOf('_')+1) : t.descripcion.split('_').join(' ');
     const mecs   = nombresToStr(t.mecanicos);
     const pClass = prioClass(t.prioridad);
     return `
@@ -1339,8 +1348,9 @@ function updateCodigo() {
     const _m  = String(_n.getMonth()+1).padStart(2,'0');
     const _d  = String(_n.getDate()).padStart(2,'0');
     const _ms = String(_n.getMilliseconds()).slice(-3);
-    const ts  = _y+'_'+_m+'_'+_d+'_'+_ms;
-    codigoNuevo = desc + '_' + sector + '_CM_' + ts;
+    const descRaw   = document.getElementById('nuevo-desc').value.trim();
+    const sectorRaw = document.getElementById('nuevo-sector').value.trim();
+    codigoNuevo = descRaw + '_' + sectorRaw + '_CM' + _y + _m + _d + '_' + _ms;
     document.getElementById('codigo-preview').textContent = codigoNuevo;
     wrap.style.display = 'block';
   } else {
