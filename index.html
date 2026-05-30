@@ -1091,7 +1091,7 @@ function renderSectionPend(items) {
         <div class="task-sub">
           <span class="badge badge-${tipo.toLowerCase()}">${tipo}</span>
           ${sub ? `<span>${sub}</span>` : ''}
-          <span style="color:var(--text3);font-size:10px">${codigo.split('_').pop()}</span>
+          <span style="color:var(--text3);font-size:10px">${(() => { const cm = codigo.indexOf('_CM'); const ri = codigo.lastIndexOf('_RI'); if(cm > 0) return 'CM' + codigo.substring(cm+3); if(ri > 0) return 'RI' + codigo.substring(ri+3); return codigo.split('_').pop(); })()}</span>
         </div>
       </div>
       ${!isNC ? `<button class="btn btn-sm" onclick="abrirEditar('${codigo}')">Editar</button>` : ''}
