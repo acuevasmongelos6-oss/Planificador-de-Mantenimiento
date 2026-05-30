@@ -1334,8 +1334,13 @@ function updateCodigo() {
   const sector = document.getElementById('nuevo-sector').value.replace(/\s+/g,'_');
   const wrap   = document.getElementById('codigo-preview-wrap');
   if (desc && sector) {
-    const ts = Date.now();
-    codigoNuevo = desc + '_' + sector + '_CM' + ts;
+    const _n  = new Date();
+    const _y  = _n.getFullYear();
+    const _m  = String(_n.getMonth()+1).padStart(2,'0');
+    const _d  = String(_n.getDate()).padStart(2,'0');
+    const _ms = String(_n.getMilliseconds()).slice(-3);
+    const ts  = _y+'_'+_m+'_'+_d+'_'+_ms;
+    codigoNuevo = desc + '_' + sector + '_CM_' + ts;
     document.getElementById('codigo-preview').textContent = codigoNuevo;
     wrap.style.display = 'block';
   } else {
