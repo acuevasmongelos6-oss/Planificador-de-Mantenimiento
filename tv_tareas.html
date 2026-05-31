@@ -275,7 +275,7 @@ function render() {
     if (tareassTec.some(t => (t.prioridad||'').toLowerCase()==='urgente')) card.classList.add('has-urgent');
 
     const partes = tec.nombre.split(' ');
-    const nombre = (partes[0]||'').substring(0,1) + '. ' + (partes[1]||'');
+    const nombre = (partes[0]||'') + (partes[1] ? ' ' + partes[1] : '');
 
     const header = document.createElement('div');
     header.className = 'card-header';
@@ -303,6 +303,10 @@ function render() {
         const dias   = diasPendientes(t.fechaRef);
         const dClass = dias===null?'':dias<=3?'dias-ok':dias<=7?'dias-warn':'dias-crit';
         const diasTxt= dias!==null?`<span class="task-dias ${dClass}">${dias}d</span>`:'';
+        // Verde si la tarea está notificada por este mecánico pero sin OS
+        const mecNotif = (t.mecsDetalle||[]).some(function(m){ return m.legajo===tec.legajo && m.estado==='notificada'; });
+        const sinOS = !t.os_sap || t.os_sap.trim()==='';
+        const descColor = (mecNotif && sinOS) ? '#3ecf6a' : '#dce8f4';
 
         const codigo = t.codigo||'';
         const sepCM  = codigo.indexOf('_CM');
@@ -314,7 +318,7 @@ function render() {
 
         const li = document.createElement('li');
         li.className = 'task-item ' + pClass;
-        li.innerHTML = `<div class="task-desc"><span class="task-desc-inner">${desc}</span></div><span class="task-sector">${sector}</span><div class="task-right"><span class="task-prio ${pC}">${pLett}</span>${diasTxt}</div>`;
+        li.innerHTML = `<div class="task-desc"><span class="task-desc-inner" style="color:${descColor}">${desc}</span></div><span class="task-sector">${sector}</span><div class="task-right"><span class="task-prio ${pC}">${pLett}</span>${diasTxt}</div>`;
         ul.appendChild(li);
       });
 
