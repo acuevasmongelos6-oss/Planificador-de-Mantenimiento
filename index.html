@@ -1709,13 +1709,14 @@ function iniciarDictadoMultiple() {
   dmRecognition.continuous = true;
 
   dmRecognition.onresult = (e) => {
-    let texto = '';
-    for (let i = 0; i < e.results.length; i++) {
-      texto += e.results[i][0].transcript;
+    // Solo tomar el ultimo resultado final o interino
+    let textoNuevo = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      textoNuevo += e.results[i][0].transcript;
     }
     const input = document.getElementById('dm-input');
-    // Mostrar texto parcial
-    input.value = (input.dataset.base || '') + texto;
+    const base = input.dataset.base || '';
+    input.value = base + textoNuevo;
   };
 
   dmRecognition.onerror = () => {
@@ -1738,9 +1739,10 @@ function detenerDictadoMultiple() {
   btn.textContent = '🎤 Mantené para dictar';
   btn.style.borderColor = '';
   btn.style.color = '';
-  // Limpiar base guardada
+  // Guardar texto actual como nueva base para siguiente dictado
   const input = document.getElementById('dm-input');
-  input.dataset.base = input.value + ' ';
+  const valorActual = input.value.trim();
+  input.dataset.base = valorActual ? valorActual + ' ' : '';
 }
 
 async function procesarMultiple() {
