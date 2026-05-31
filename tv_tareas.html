@@ -8,7 +8,6 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-
 :root {
   --bg:        #080b10;
   --bg2:       #0d1117;
@@ -28,551 +27,235 @@
   --mono:      'IBM Plex Mono', monospace;
   --sans:      'IBM Plex Sans', sans-serif;
 }
-
-html, body {
-  width: 100%; height: 100%;
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--sans);
-  overflow: hidden;
-}
-
-/* ── SCANLINES overlay ── */
+html, body { width: 100%; height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); overflow: hidden; }
 body::before {
   content: '';
   position: fixed;
   inset: 0;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 3px,
-    rgba(0,0,0,.06) 3px,
-    rgba(0,0,0,.06) 4px
-  );
+  background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,.06) 3px, rgba(0,0,0,.06) 4px);
   pointer-events: none;
   z-index: 999;
 }
 
-/* ── HEADER ── */
+/* HEADER */
 .header {
-  height: 72px;
+  height: 36px;
   background: var(--bg2);
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
-  padding: 0 28px;
-  gap: 0;
-  position: relative;
-}
-
-.header-logo {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex: 1;
-}
-
-.header-logo-top {
-  font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: .2em;
-  text-transform: uppercase;
-  color: var(--accent);
-}
-
-.header-logo-bot {
-  font-family: var(--mono);
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: .06em;
-  text-transform: uppercase;
-  color: var(--text);
-}
-
-.header-stats {
-  display: flex;
-  gap: 32px;
-  align-items: center;
-  flex: 1;
-  justify-content: center;
-}
-
-.stat {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-}
-
-.stat-val {
-  font-family: var(--mono);
-  font-size: 26px;
-  font-weight: 700;
-  line-height: 1;
-}
-
-.stat-label {
-  font-size: 10px;
-  font-family: var(--mono);
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  color: var(--text2);
-}
-
-.header-clock {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
-}
-
-.clock-time {
-  font-family: var(--mono);
-  font-size: 28px;
-  font-weight: 700;
-  letter-spacing: .05em;
-  color: var(--text);
-}
-
-.clock-date {
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--text2);
-  letter-spacing: .1em;
-  text-transform: uppercase;
-}
-
-/* ── REFRESH BAR ── */
-.refresh-bar {
-  height: 2px;
-  background: var(--border);
-  position: relative;
-  overflow: hidden;
-}
-
-.refresh-progress {
-  height: 100%;
-  background: var(--accent);
-  width: 0%;
-  transition: none;
-}
-
-/* ── LEGEND ── */
-.legend {
-  height: 32px;
-  background: var(--bg2);
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  padding: 0 28px;
-  gap: 28px;
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 10px;
-  font-family: var(--mono);
-  letter-spacing: .08em;
-  color: var(--text2);
-  text-transform: uppercase;
-}
-
-.legend-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 2px;
+  padding: 0 20px;
   flex-shrink: 0;
 }
+.header-logo { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.header-logo-dot { font-family: var(--mono); font-size: 10px; color: var(--accent); }
+.header-logo-txt { font-family: var(--mono); font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text); white-space: nowrap; }
+.header-logo-sub { font-family: var(--mono); font-size: 9px; color: #4a5a6a; letter-spacing: .06em; text-transform: uppercase; margin-left: 2px; }
+.header-divider { width: 1px; height: 20px; background: var(--border2); margin: 0 18px; flex-shrink: 0; }
+.header-stats { display: flex; gap: 18px; align-items: center; }
+.stat { display: flex; align-items: baseline; gap: 6px; }
+.stat-val { font-family: var(--mono); font-size: 18px; font-weight: 700; line-height: 1; }
+.stat-label { font-family: var(--mono); font-size: 8px; letter-spacing: .1em; text-transform: uppercase; color: var(--text2); white-space: nowrap; }
+.stat-sep { width: 1px; height: 16px; background: var(--border2); }
+.header-spacer { flex: 1; }
+.header-clock { text-align: right; flex-shrink: 0; }
+.clock-time { font-family: var(--mono); font-size: 18px; font-weight: 700; color: var(--text); letter-spacing: .04em; }
+.clock-date { font-family: var(--mono); font-size: 7px; color: var(--text2); letter-spacing: .1em; text-transform: uppercase; }
 
-.legend-sep {
-  width: 1px;
-  height: 16px;
-  background: var(--border2);
-}
+/* REFRESH BAR */
+.refresh-bar { height: 2px; background: var(--border); flex-shrink: 0; position: relative; overflow: hidden; }
+.refresh-progress { height: 100%; background: var(--accent); width: 0%; }
 
-/* ── GRID ── */
+/* GRID */
 .grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   grid-template-rows: repeat(6, 1fr);
-  gap: 8px;
-  padding: 8px;
-  height: calc(100vh - 72px - 2px - 32px);
+  gap: 5px;
+  padding: 5px;
+  height: calc(100vh - 36px - 2px);
 }
 
-/* ── CARD ── */
-.card {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  position: relative;
-  transition: border-color .3s;
-}
-
-.card.has-urgent { border-color: rgba(224,64,64,.4); }
+/* CARD */
+.card { background: var(--bg2); border: 1px solid var(--border); border-radius: 5px; display: flex; flex-direction: column; overflow: hidden; }
+.card.has-urgent { animation: pulse-border 2s ease infinite; }
+@keyframes pulse-border { 0%,100%{border-color:rgba(224,64,64,.4)} 50%{border-color:rgba(224,64,64,.8)} }
 
 .card-header {
-  padding: 6px 10px 5px;
+  padding: 2px 7px;
   background: var(--bg3);
   border-bottom: 1px solid var(--border);
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
+  height: 17px;
 }
+.card-nombre { font-family: var(--mono); font-size: 7px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card-meta { display: flex; gap: 4px; align-items: center; flex-shrink: 0; margin-left: 5px; }
+.card-legajo { font-family: var(--mono); font-size: 6px; color: var(--text3); }
+.card-count { font-family: var(--mono); font-size: 6px; color: var(--text2); }
 
-.card-nombre {
-  font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: .06em;
-  text-transform: uppercase;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+.card-body { flex: 1; overflow: hidden; position: relative; }
+.card-scroll { padding: 1px 7px 2px; display: flex; flex-direction: column; will-change: transform; }
 
-.card-legajo {
-  font-family: var(--mono);
-  font-size: 9px;
-  color: var(--text3);
-  letter-spacing: .08em;
-  flex-shrink: 0;
-  margin-left: 6px;
-}
+.empty-state { height: 100%; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 7px; color: var(--text3); letter-spacing: .08em; }
 
-.card-count {
-  font-family: var(--mono);
-  font-size: 10px;
-  color: var(--text2);
-  flex-shrink: 0;
-  margin-left: 6px;
-}
-
-.card-body {
-  flex: 1;
-  overflow: hidden;
-  position: relative;
-}
-
-.card-scroll {
-  padding: 5px 8px;
+/* TASK LIST */
+.task-list { list-style: none; display: flex; flex-direction: column; }
+.task-item {
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 4px;
+  padding: 2px 0;
+  border-bottom: 1px solid #0f1820;
+  height: 18px;
+  flex-shrink: 0;
 }
+.task-item:last-child { border-bottom: none; }
+.task-item.prio-urg { border-left: 2px solid var(--urg); padding-left: 4px; }
+.task-item.prio-norm { border-left: 2px solid var(--norm); padding-left: 4px; }
+.task-item.prio-baja { border-left: 2px solid var(--baja); padding-left: 4px; }
 
-.empty-state {
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--mono);
-  font-size: 10px;
-  color: var(--text3);
-  letter-spacing: .1em;
-}
+.task-desc { flex: 1; overflow: hidden; white-space: nowrap; min-width: 0; }
+.task-desc-inner { display: inline-block; white-space: nowrap; font-size: 7px; font-weight: 500; color: #c8d4e0; font-family: var(--sans); will-change: transform; }
+.task-sector { font-size: 6px; color: #4a5a6a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 30%; flex-shrink: 0; font-family: var(--sans); }
+.task-right { display: flex; gap: 3px; align-items: center; flex-shrink: 0; width: 24px; }
+.task-prio { font-family: var(--mono); font-size: 7px; font-weight: 700; }
+.prio-u { color: var(--urg); }
+.prio-n { color: var(--norm); }
+.prio-b { color: var(--baja); }
+.task-dias { font-family: var(--mono); font-size: 6px; font-weight: 700; }
+.dias-ok   { color: var(--dias-ok); }
+.dias-warn { color: var(--dias-warn); }
+.dias-crit { color: var(--dias-crit); }
 
-/* ── TASK ROW ── */
-.task {
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 4px 7px;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  min-height: 32px;
-}
-
-.task.prio-urg { border-left: 2px solid var(--urg); }
-.task.prio-norm { border-left: 2px solid var(--norm); }
-.task.prio-baja { border-left: 2px solid var(--baja); }
-
-.task-info { flex: 1; min-width: 0; }
-
-.task-desc {
-  font-size: 10px;
-  font-weight: 500;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 1.3;
-}
-
-.task-sector {
-  font-family: var(--mono);
-  font-size: 9px;
-  color: var(--text2);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.badges { display: flex; gap: 3px; flex-shrink: 0; }
-
-.badge {
-  font-family: var(--mono);
-  font-size: 8px;
-  font-weight: 700;
-  padding: 2px 4px;
-  border-radius: 3px;
-  letter-spacing: .04em;
-  white-space: nowrap;
-}
-
-.badge-urg  { background: rgba(224,64,64,.2);  color: #ff7070; border: 1px solid rgba(224,64,64,.3); }
-.badge-norm { background: rgba(212,146,10,.15); color: #e8b050; border: 1px solid rgba(212,146,10,.25); }
-.badge-baja { background: rgba(30,138,74,.15);  color: #5ec87a; border: 1px solid rgba(30,138,74,.25); }
-.badge-ok   { background: rgba(30,138,74,.15);  color: #5ec87a; border: 1px solid rgba(30,138,74,.25); }
-.badge-warn { background: rgba(196,122,10,.15); color: #e8a040; border: 1px solid rgba(196,122,10,.25); }
-.badge-crit { background: rgba(200,48,48,.2);   color: #ff6060; border: 1px solid rgba(200,48,48,.3); }
-
-/* ── LOADING ── */
-#loading {
-  position: fixed;
-  inset: 0;
-  background: var(--bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  gap: 16px;
-  z-index: 100;
-  font-family: var(--mono);
-  font-size: 13px;
-  color: var(--text2);
-  letter-spacing: .1em;
-}
-
-.spinner-tv {
-  width: 32px; height: 32px;
-  border: 2px solid var(--border2);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin .8s linear infinite;
-}
-
+/* LOADING */
+#loading { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 16px; z-index: 100; font-family: var(--mono); font-size: 13px; color: var(--text2); letter-spacing: .1em; }
+.spinner-tv { width: 32px; height: 32px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-
-/* ── PULSE ANIM FOR URGENT ── */
-@keyframes pulse-border {
-  0%, 100% { border-color: rgba(224,64,64,.4); }
-  50%       { border-color: rgba(224,64,64,.8); }
-}
-.card.has-urgent { animation: pulse-border 2s ease infinite; }
 </style>
 </head>
 <body>
 
-<div id="loading">
-  <div class="spinner-tv"></div>
-  CARGANDO DATOS...
-</div>
+<div id="loading"><div class="spinner-tv"></div>CARGANDO DATOS...</div>
 
-<!-- HEADER -->
 <div class="header">
   <div class="header-logo">
-    <div class="header-logo-top">● Sistema de Mantenimiento</div>
-    <div class="header-logo-bot">Frigomerc — Pendientes</div>
+    <span class="header-logo-dot">●</span>
+    <span class="header-logo-txt">Frigomerc</span>
+    <span class="header-logo-sub">— Pendientes</span>
   </div>
+  <div class="header-divider"></div>
   <div class="header-stats">
     <div class="stat">
-      <div class="stat-val" id="stat-total" style="color:var(--accent)">—</div>
-      <div class="stat-label">Tareas asignadas</div>
+      <div class="stat-val" id="stat-asig" style="color:var(--accent)">—</div>
+      <div class="stat-label">Asignados</div>
     </div>
-    <div style="width:1px;height:32px;background:var(--border2)"></div>
+    <div class="stat-sep"></div>
     <div class="stat">
-      <div class="stat-val" id="stat-urg" style="color:var(--urg)">—</div>
-      <div class="stat-label">Urgentes</div>
+      <div class="stat-val" id="stat-sinasig" style="color:var(--norm)">—</div>
+      <div class="stat-label">Sin asignar</div>
     </div>
-    <div style="width:1px;height:32px;background:var(--border2)"></div>
+    <div class="stat-sep"></div>
     <div class="stat">
-      <div class="stat-val" id="stat-crit" style="color:var(--dias-crit)">—</div>
-      <div class="stat-label">Críticas +7d</div>
+      <div class="stat-val" id="stat-total" style="color:var(--text)">—</div>
+      <div class="stat-label">Total pendientes</div>
     </div>
   </div>
+  <div class="header-spacer"></div>
   <div class="header-clock">
     <div class="clock-time" id="clock-time">--:--:--</div>
     <div class="clock-date" id="clock-date">---</div>
   </div>
 </div>
 
-<!-- REFRESH BAR -->
-<div class="refresh-bar">
-  <div class="refresh-progress" id="refresh-progress"></div>
-</div>
-
-<!-- LEGEND -->
-<div class="legend">
-  <div class="legend-item">
-    <div class="legend-dot" style="background:var(--urg)"></div>
-    Urgente
-  </div>
-  <div class="legend-item">
-    <div class="legend-dot" style="background:var(--norm)"></div>
-    Normal
-  </div>
-  <div class="legend-item">
-    <div class="legend-dot" style="background:var(--baja)"></div>
-    Baja
-  </div>
-  <div class="legend-sep"></div>
-  <div class="legend-item">
-    <div class="legend-dot" style="background:var(--dias-ok)"></div>
-    1–3 días
-  </div>
-  <div class="legend-item">
-    <div class="legend-dot" style="background:var(--dias-warn)"></div>
-    4–7 días
-  </div>
-  <div class="legend-item">
-    <div class="legend-dot" style="background:var(--dias-crit)"></div>
-    +7 días
-  </div>
-  <div class="legend-sep"></div>
-  <div class="legend-item" style="color:var(--text3)">
-    ↻ Auto-actualización cada 30s
-  </div>
-</div>
-
-<!-- GRID -->
+<div class="refresh-bar"><div class="refresh-progress" id="refresh-progress"></div></div>
 <div class="grid" id="grid"></div>
 
 <script>
 const URL_PLAN = 'https://script.google.com/macros/s/AKfycbyc3QGQMkCvcsdYuQMj9Dh9lM0TC9BjBX2qkivi2IWyTIsfmPbtKl74y_6Tc3AZPQKQ/exec';
-const REFRESH_INTERVAL = 30000; // 30 segundos
-const SCROLL_INTERVAL  = 3000;  // 3 segundos
-const CARDS_TOTAL      = 30;
+const REFRESH_INTERVAL = 30000;
+const ITEM_H   = 18;
+const V_SPEED  = 0.08;
+const H_SPEED  = 0.3;
+const CARDS_TOTAL = 30;
 
 let tecnicos = [];
 let tareas   = [];
+let ncs      = [];
 let scrollTimers = {};
-let refreshTimer = null;
 let progressTimer = null;
 
-// ── CLOCK ──
+// CLOCK
 function updateClock() {
-  const now  = new Date();
-  const h    = String(now.getHours()).padStart(2,'0');
-  const m    = String(now.getMinutes()).padStart(2,'0');
-  const s    = String(now.getSeconds()).padStart(2,'0');
-  document.getElementById('clock-time').textContent = h + ':' + m + ':' + s;
-  const dias = ['DOM','LUN','MAR','MIÉ','JUE','VIE','SÁB'];
+  const now = new Date();
+  const pad = x => String(x).padStart(2,'0');
+  document.getElementById('clock-time').textContent = pad(now.getHours())+':'+pad(now.getMinutes())+':'+pad(now.getSeconds());
+  const dias  = ['DOM','LUN','MAR','MIÉ','JUE','VIE','SÁB'];
   const meses = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
-  document.getElementById('clock-date').textContent =
-    dias[now.getDay()] + ' ' + now.getDate() + ' ' + meses[now.getMonth()] + ' ' + now.getFullYear();
+  document.getElementById('clock-date').textContent = dias[now.getDay()]+' '+now.getDate()+' '+meses[now.getMonth()]+' '+now.getFullYear();
 }
 setInterval(updateClock, 1000);
 updateClock();
 
-// ── REFRESH PROGRESS BAR ──
+// PROGRESS BAR
 function startProgressBar() {
   const bar = document.getElementById('refresh-progress');
   const start = Date.now();
-  bar.style.transition = 'none';
   bar.style.width = '0%';
   if (progressTimer) clearInterval(progressTimer);
   progressTimer = setInterval(() => {
-    const elapsed = Date.now() - start;
-    const pct = Math.min(100, (elapsed / REFRESH_INTERVAL) * 100);
+    const pct = Math.min(100, ((Date.now() - start) / REFRESH_INTERVAL) * 100);
     bar.style.width = pct + '%';
     if (pct >= 100) clearInterval(progressTimer);
   }, 200);
 }
 
-// ── FETCH DATA ──
+// FETCH
 async function fetchData() {
   try {
-    const [resTareas, resDatos] = await Promise.all([
+    const [resTareas, resDatos, resNCs] = await Promise.all([
       fetch(URL_PLAN + '?accion=getTareas', { redirect: 'follow' }).then(r => r.json()),
-      fetch(URL_PLAN + '?accion=getDatos',  { redirect: 'follow' }).then(r => r.json())
+      fetch(URL_PLAN + '?accion=getDatos',  { redirect: 'follow' }).then(r => r.json()),
+      fetch(URL_PLAN + '?accion=getNCs',    { redirect: 'follow' }).then(r => r.json()),
     ]);
     if (resTareas.ok) tareas   = resTareas.data || [];
     if (resDatos.ok)  tecnicos = resDatos.data.tecnicos || [];
-  } catch(e) {
-    console.error('Error fetching data:', e);
-  }
+    if (resNCs.ok)    ncs      = resNCs.data || [];
+  } catch(e) { console.error(e); }
 }
 
-// ── DÍAS PENDIENTES ──
+// DIAS
 function diasPendientes(fechaRef) {
   if (!fechaRef) return null;
   try {
-    const fecha = new Date(fechaRef);
-    const hoy   = new Date();
-    hoy.setHours(0,0,0,0);
-    fecha.setHours(0,0,0,0);
-    return Math.floor((hoy - fecha) / 86400000);
+    const f = new Date(fechaRef); f.setHours(0,0,0,0);
+    const h = new Date(); h.setHours(0,0,0,0);
+    return Math.floor((h - f) / 86400000);
   } catch(e) { return null; }
 }
 
-function badgeDias(dias) {
-  if (dias === null) return '';
-  if (dias <= 3) return `<span class="badge badge-ok">${dias}D</span>`;
-  if (dias <= 7) return `<span class="badge badge-warn">${dias}D</span>`;
-  return `<span class="badge badge-crit">${dias}D</span>`;
-}
-
-function badgePrio(p) {
-  const v = (p || '').toLowerCase();
-  if (v === 'urgente') return '<span class="badge badge-urg">URG</span>';
-  if (v === 'normal')  return '<span class="badge badge-norm">NRM</span>';
-  return '<span class="badge badge-baja">BAJA</span>';
-}
-
-function prioOrder(p) {
-  const v = (p || '').toLowerCase();
-  if (v === 'urgente') return 0;
-  if (v === 'normal')  return 1;
-  return 2;
-}
-
-// ── RENDER ──
+// RENDER
 function render() {
-  // Filtrar solo asignadas activas
-  const activas = tareas.filter(t => {
-    const est = (t.estado || '').toLowerCase();
-    return est !== 'sin_asignar' && est !== 'finalizada';
-  });
+  const activas   = tareas.filter(t => { const e=(t.estado||'').toLowerCase(); return e!=='sin_asignar'&&e!=='finalizada'; });
+  const sinAsignar= ncs.length;
+  const total     = activas.length + sinAsignar;
 
-  // Calcular stats
-  const totalAsig = activas.length;
-  const totalUrg  = activas.filter(t => (t.prioridad||'').toLowerCase() === 'urgente').length;
-  const totalCrit = activas.filter(t => {
-    const d = diasPendientes(t.fechaRef);
-    return d !== null && d > 7;
-  }).length;
+  document.getElementById('stat-asig').textContent    = activas.length;
+  document.getElementById('stat-sinasig').textContent = sinAsignar;
+  document.getElementById('stat-total').textContent   = total;
 
-  document.getElementById('stat-total').textContent = totalAsig;
-  document.getElementById('stat-urg').textContent   = totalUrg;
-  document.getElementById('stat-crit').textContent  = totalCrit;
-
-  // Limpiar timers de scroll existentes
   Object.values(scrollTimers).forEach(t => clearInterval(t));
   scrollTimers = {};
 
   const grid = document.getElementById('grid');
   grid.innerHTML = '';
 
-  // Ordenar técnicos y tomar los primeros 30
-  const tecnicosOrdenados = [...tecnicos].slice(0, CARDS_TOTAL);
+  const tecsList = [...tecnicos].slice(0, CARDS_TOTAL);
+  while (tecsList.length < CARDS_TOTAL) tecsList.push(null);
 
-  // Si hay menos de 30, rellenar con vacíos
-  while (tecnicosOrdenados.length < CARDS_TOTAL) {
-    tecnicosOrdenados.push(null);
-  }
-
-  tecnicosOrdenados.forEach((tec, idx) => {
+  tecsList.forEach((tec, idx) => {
     const card = document.createElement('div');
     card.className = 'card';
 
@@ -582,26 +265,23 @@ function render() {
       return;
     }
 
-    // Tareas de este mecánico
     const tareassTec = activas
-      .filter(t => (t.mecanicos || []).includes(tec.legajo))
-      .sort((a, b) => prioOrder(a.prioridad) - prioOrder(b.prioridad));
+      .filter(t => (t.mecanicos||[]).includes(tec.legajo))
+      .sort((a,b) => {
+        const o = p => p==='Urgente'?0:p==='Normal'?1:2;
+        return o(a.prioridad) - o(b.prioridad);
+      });
 
-    const hasUrgent = tareassTec.some(t => (t.prioridad||'').toLowerCase() === 'urgente');
-    if (hasUrgent) card.classList.add('has-urgent');
+    if (tareassTec.some(t => (t.prioridad||'').toLowerCase()==='urgente')) card.classList.add('has-urgent');
 
-    // Header
+    const partes = tec.nombre.split(' ');
+    const nombre = (partes[0]||'').substring(0,1) + '. ' + (partes[1]||'');
+
     const header = document.createElement('div');
     header.className = 'card-header';
-    const parteNombre = tec.nombre.split(" "); const nombreCompleto = (parteNombre[0] || "") + (parteNombre[1] ? " " + parteNombre[1] : "");
-    header.innerHTML = `
-      <span class="card-nombre">${nombreCompleto}</span>
-      <span class="card-legajo">${tec.legajo}</span>
-      <span class="card-count">${tareassTec.length > 0 ? tareassTec.length + ' tarea' + (tareassTec.length !== 1 ? 's' : '') : ''}</span>
-    `;
+    header.innerHTML = `<span class="card-nombre">${nombre}</span><div class="card-meta"><span class="card-legajo">${tec.legajo}</span>${tareassTec.length?`<span class="card-count">${tareassTec.length}t</span>`:''}</div>`;
     card.appendChild(header);
 
-    // Body
     const body = document.createElement('div');
     body.className = 'card-body';
 
@@ -610,57 +290,46 @@ function render() {
     } else {
       const scroll = document.createElement('div');
       scroll.className = 'card-scroll';
-      scroll.id = 'scroll-' + idx;
+      const ul = document.createElement('ul');
+      ul.className = 'task-list';
 
-      tareassTec.forEach(t => {
-        const pClass = (t.prioridad||'').toLowerCase() === 'urgente' ? 'prio-urg' :
-                       (t.prioridad||'').toLowerCase() === 'normal'  ? 'prio-norm' : 'prio-baja';
+      const allItems = tareassTec.length > 3 ? [...tareassTec, ...tareassTec] : tareassTec;
 
-        // Extraer descripción y sector del código
-        const codigo = t.codigo || '';
+      allItems.forEach(t => {
+        const prio  = (t.prioridad||'').toLowerCase();
+        const pClass = prio==='urgente'?'prio-urg':prio==='normal'?'prio-norm':'prio-baja';
+        const pLett  = prio==='urgente'?'U':prio==='normal'?'N':'B';
+        const pC     = prio==='urgente'?'prio-u':prio==='normal'?'prio-n':'prio-b';
+        const dias   = diasPendientes(t.fechaRef);
+        const dClass = dias===null?'':dias<=3?'dias-ok':dias<=7?'dias-warn':'dias-crit';
+        const diasTxt= dias!==null?`<span class="task-dias ${dClass}">${dias}d</span>`:'';
+
+        const codigo = t.codigo||'';
         const sepCM  = codigo.indexOf('_CM');
         const sepRI  = codigo.lastIndexOf('_RI');
-        const sep    = sepCM > 0 ? sepCM : sepRI > 0 ? sepRI : -1;
-        let partesCod = sep > 0 ? codigo.substring(0, sep).split('_') : codigo.split('_');
-        const sector  = partesCod.slice(-1)[0] || '';
-        const desc    = partesCod.slice(0, -1).join(' ') || sector;
+        const sep    = sepCM>0?sepCM:sepRI>0?sepRI:-1;
+        const partesCod = sep>0?codigo.substring(0,sep).split('_'):codigo.split('_');
+        const sector = partesCod.slice(-1)[0]||'';
+        const desc   = partesCod.slice(0,-1).join(' ')||sector;
 
-        const dias = diasPendientes(t.fechaRef);
-
-        const taskEl = document.createElement('div');
-        taskEl.className = 'task ' + pClass;
-        taskEl.innerHTML = `
-          <div class="task-info">
-            <div class="task-desc">${desc}</div>
-            <div class="task-sector">${sector}</div>
-          </div>
-          <div class="badges">
-            ${badgePrio(t.prioridad)}
-            ${badgeDias(dias)}
-          </div>
-        `;
-        scroll.appendChild(taskEl);
+        const li = document.createElement('li');
+        li.className = 'task-item ' + pClass;
+        li.innerHTML = `<div class="task-desc"><span class="task-desc-inner">${desc}</span></div><span class="task-sector">${sector}</span><div class="task-right"><span class="task-prio ${pC}">${pLett}</span>${diasTxt}</div>`;
+        ul.appendChild(li);
       });
 
+      scroll.appendChild(ul);
       body.appendChild(scroll);
 
-      // Auto-scroll si hay muchas tareas
-      if (tareassTec.length > 2) {
-        let scrollDir = 1;
+      // Scroll vertical circular
+      if (tareassTec.length > 3) {
+        const loopH = tareassTec.length * ITEM_H;
+        let pos = 0;
         scrollTimers[idx] = setInterval(() => {
-          const el = document.getElementById('scroll-' + idx);
-          if (!el) return;
-          const parent = el.parentElement;
-          const maxScroll = el.scrollHeight - parent.clientHeight;
-          if (maxScroll <= 0) return;
-          if (scrollDir === 1) {
-            parent.scrollTop += parent.clientHeight * 0.6;
-            if (parent.scrollTop >= maxScroll - 5) scrollDir = -1;
-          } else {
-            parent.scrollTop = 0;
-            scrollDir = 1;
-          }
-        }, SCROLL_INTERVAL);
+          pos += V_SPEED;
+          if (pos >= loopH) pos -= loopH;
+          scroll.style.transform = `translateY(${-pos}px)`;
+        }, 16);
       }
     }
 
@@ -669,21 +338,40 @@ function render() {
   });
 
   document.getElementById('loading').style.display = 'none';
+
+  // Scroll horizontal circular para descripciones largas
+  setTimeout(() => {
+    document.querySelectorAll('.task-desc').forEach(container => {
+      const inner = container.querySelector('.task-desc-inner');
+      if (!inner) return;
+      requestAnimationFrame(() => {
+        const cW = container.clientWidth;
+        const tW = inner.scrollWidth;
+        if (tW > cW + 4) {
+          const originalText = inner.textContent;
+          inner.textContent = originalText + '      ' + originalText;
+          const loopW = tW + 20;
+          let pos = 0;
+          setInterval(() => {
+            pos += H_SPEED;
+            if (pos >= loopW) pos -= loopW;
+            inner.style.transform = `translateX(${-pos}px)`;
+          }, 16);
+        }
+      });
+    });
+  }, 500);
 }
 
-// ── MAIN LOOP ──
+// MAIN
 async function refresh() {
   await fetchData();
   render();
   startProgressBar();
 }
 
-async function init() {
-  await refresh();
-  refreshTimer = setInterval(refresh, REFRESH_INTERVAL);
-}
-
-init();
+refresh();
+setInterval(refresh, REFRESH_INTERVAL);
 </script>
 </body>
 </html>
