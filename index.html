@@ -1535,20 +1535,21 @@ function mostrarOpcionesSector(opciones) {
   document.getElementById('nuevo-sector-ia').style.display = 'block';
 }
 
-// IA deshabilitada en esta versión — se activa en la siguiente etapa
+// IA habilitada — llama al Apps Script del planificador
 async function mejorarDescripcionIA(texto) {
-  // Por ahora devuelve el texto tal cual sin procesar con IA
-  return texto;
+  try {
+    const res = await callScript('mejorarDescripcion', { texto });
+    if (res.ok) return res.data.descripcion;
+    return texto;
+  } catch(e) { return texto; }
 }
 
 async function buscarSectoresIA(texto) {
-  // Por ahora filtra localmente por similitud básica
-  const t = texto.toLowerCase();
-  const matches = sectores.filter(s => {
-    const palabras = t.split(' ');
-    return palabras.some(p => p.length > 2 && s.toLowerCase().includes(p));
-  });
-  return matches.length ? matches.slice(0, 3) : sectores.slice(0, 3);
+  try {
+    const res = await callScript('buscarSector', { texto });
+    if (res.ok) return res.data.opciones;
+    return sectores.slice(0, 3);
+  } catch(e) { return sectores.slice(0, 3); }
 }
 
 // ============================================================
@@ -1568,7 +1569,17 @@ async function enviarIA() {
   if (!msg) return;
   input.value = '';
   addIAMsg(msg, 'user');
-  addIAMsg('El asistente IA se activa en la próxima etapa. Por ahora podés usar el panel para gestionar todas las tareas normalmente.', 'bot');
+  const typing = addIAMsg('...', 'bot');
+  try {
+    const res = await callScript('consultarIA', { pregunta: msg });
+    if (res.ok) {
+      typing.textContent = res.data.respuesta;
+    } else {
+      typing.textContent = 'Error: ' + (res.error || 'No se pudo procesar la consulta');
+    }
+  } catch(e) {
+    typing.textContent = 'Error de conexión con el asistente.';
+  }
   document.getElementById('ia-messages').scrollTop = 9999;
 }
 
