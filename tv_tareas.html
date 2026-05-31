@@ -593,9 +593,9 @@ function render() {
     // Header
     const header = document.createElement('div');
     header.className = 'card-header';
-    const apellido = tec.nombre.split(' ').pop();
+    const parteNombre = tec.nombre.split(" "); const nombreCompleto = (parteNombre[0] || "") + (parteNombre[1] ? " " + parteNombre[1] : "");
     header.innerHTML = `
-      <span class="card-nombre">${apellido}</span>
+      <span class="card-nombre">${nombreCompleto}</span>
       <span class="card-legajo">${tec.legajo}</span>
       <span class="card-count">${tareassTec.length > 0 ? tareassTec.length + ' tarea' + (tareassTec.length !== 1 ? 's' : '') : ''}</span>
     `;
