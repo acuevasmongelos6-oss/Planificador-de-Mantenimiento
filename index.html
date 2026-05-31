@@ -630,6 +630,7 @@ input[type=text]:focus, input[type=date]:focus, select:focus, textarea:focus {
     </div>
     <div class="topbar-right">
       <button class="btn btn-sm" onclick="recargar()" id="btn-reload">↻ Actualizar</button>
+      <button class="btn btn-sm" onclick="abrirDictadoMultiple()">⊞ Múltiple</button>
       <button class="btn btn-sm" onclick="toggleIA()">✦ IA</button>
       <button class="btn btn-sm btn-primary" onclick="openModal('modal-nuevo')">+ Nuevo trabajo</button>
     </div>
@@ -691,6 +692,48 @@ input[type=text]:focus, input[type=date]:focus, select:focus, textarea:focus {
       <div class="section-body collapsed" id="sec-fin"></div>
     </div>
 
+  </div>
+</div>
+
+<!-- DICTADO MULTIPLE SCREEN -->
+<div id="screen-multiple" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:160;overflow-y:auto;padding:20px">
+  <div style="max-width:760px;margin:0 auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div>
+        <p style="font-size:18px;font-weight:500;margin:0;color:var(--text)">Dictado múltiple</p>
+        <p style="font-size:12px;color:var(--text2);margin:4px 0 0">Dictá o escribí varios trabajos de una vez</p>
+      </div>
+      <button class="btn btn-sm" onclick="cerrarDictadoMultiple()">✕ Cerrar</button>
+    </div>
+
+    <!-- Input -->
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px">
+      <p style="font-size:11px;font-family:var(--font-mono);color:var(--text2);letter-spacing:.06em;text-transform:uppercase;margin:0 0 10px">Texto a procesar</p>
+      <textarea id="dm-input" placeholder="Ej: Ojeda va a reparar la puerta de la cámara fría, Cabrera revisará el compresor del túnel 1..." style="width:100%;height:120px;resize:none;font-size:14px;padding:10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font-sans)"></textarea>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="btn btn-sm" onclick="dictarMultiple()" id="dm-mic-btn">🎤 Dictar</button>
+        <button class="btn btn-sm btn-primary" onclick="procesarMultiple()" id="dm-procesar-btn">✦ Procesar con IA</button>
+      </div>
+    </div>
+
+    <!-- Resultado -->
+    <div id="dm-resultado" style="display:none">
+      <p style="font-size:11px;font-family:var(--font-mono);color:var(--text2);letter-spacing:.06em;text-transform:uppercase;margin:0 0 10px">Trabajos identificados — revisá y editá antes de confirmar</p>
+      <div id="dm-tabla"></div>
+      <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end">
+        <button class="btn btn-sm" onclick="document.getElementById('dm-resultado').style.display='none'">Cancelar</button>
+        <button class="btn btn-sm btn-primary" onclick="confirmarMultiple()">Crear todos los trabajos</button>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div id="dm-loading" style="display:none;text-align:center;padding:30px;color:var(--text2);font-family:var(--font-mono);font-size:13px">
+      <div class="spinner" style="margin:0 auto 12px"></div>
+      Procesando con IA...
+    </div>
+
+    <!-- Error -->
+    <div id="dm-error" style="display:none;background:rgba(224,82,82,.1);border:1px solid rgba(224,82,82,.3);border-radius:8px;padding:12px;font-size:13px;color:var(--urg)"></div>
   </div>
 </div>
 
@@ -1590,6 +1633,125 @@ function addIAMsg(text, role) {
   document.getElementById('ia-messages').appendChild(div);
   document.getElementById('ia-messages').scrollTop = 9999;
   return div;
+}
+
+// ============================================================
+// DICTADO MULTIPLE
+// ============================================================
+let dmTrabajos = [];
+
+function abrirDictadoMultiple() {
+  document.getElementById('screen-multiple').style.display = 'block';
+  document.getElementById('dm-resultado').style.display = 'none';
+  document.getElementById('dm-error').style.display = 'none';
+  document.getElementById('dm-input').value = '';
+  dmTrabajos = [];
+}
+
+function cerrarDictadoMultiple() {
+  document.getElementById('screen-multiple').style.display = 'none';
+}
+
+function dictarMultiple() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    toast('Tu navegador no soporta dictado por voz', 'err'); return;
+  }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const rec = new SR();
+  rec.lang = 'es-ES';
+  rec.interimResults = false;
+  rec.onresult = (e) => {
+    const texto = e.results[0][0].transcript;
+    const input = document.getElementById('dm-input');
+    input.value = input.value ? input.value + ' ' + texto : texto;
+  };
+  rec.onerror = () => toast('Error en dictado', 'err');
+  rec.start();
+  toast('Dictando... hablá ahora', '');
+}
+
+async function procesarMultiple() {
+  const texto = document.getElementById('dm-input').value.trim();
+  if (!texto) { toast('Escribí o dictá el texto primero', 'err'); return; }
+  if (!checkOnline()) { toast('Sin conexión', 'err'); return; }
+
+  document.getElementById('dm-loading').style.display = 'block';
+  document.getElementById('dm-resultado').style.display = 'none';
+  document.getElementById('dm-error').style.display = 'none';
+
+  try {
+    const res = await callScript('procesarDictadoMultiple', { texto });
+    document.getElementById('dm-loading').style.display = 'none';
+    if (res.ok && res.data.trabajos && res.data.trabajos.length) {
+      dmTrabajos = res.data.trabajos;
+      renderTablaMultiple(dmTrabajos);
+      document.getElementById('dm-resultado').style.display = 'block';
+    } else {
+      document.getElementById('dm-error').textContent = res.error || 'No se pudieron identificar trabajos en el texto';
+      document.getElementById('dm-error').style.display = 'block';
+    }
+  } catch(e) {
+    document.getElementById('dm-loading').style.display = 'none';
+    document.getElementById('dm-error').textContent = 'Error de conexión';
+    document.getElementById('dm-error').style.display = 'block';
+  }
+}
+
+function renderTablaMultiple(trabajos) {
+  const cont = document.getElementById('dm-tabla');
+  cont.innerHTML = trabajos.map((t, i) => {
+    const tec = tecnicos.find(x => x.legajo === t.legajo);
+    const nomTec = tec ? tec.nombre : (t.legajo || '');
+    return `
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;align-items:start">
+        <div>
+          <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;font-family:var(--font-mono);text-transform:uppercase">Descripción</label>
+          <input type="text" value="${t.descripcion || ''}" onchange="dmTrabajos[${i}].descripcion=this.value" style="width:100%;font-size:13px">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;font-family:var(--font-mono);text-transform:uppercase">Sector</label>
+          <select onchange="dmTrabajos[${i}].sector=this.value" style="width:100%;font-size:13px">
+            <option value="">Seleccionar...</option>
+            ${sectores.map(s => `<option value="${s}" ${s === t.sector ? 'selected' : ''}>${s}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;font-family:var(--font-mono);text-transform:uppercase">Mecánico</label>
+          <select onchange="dmTrabajos[${i}].legajo=this.value" style="width:100%;font-size:13px">
+            <option value="">Seleccionar...</option>
+            ${tecnicos.map(t2 => `<option value="${t2.legajo}" ${t2.legajo === t.legajo ? 'selected' : ''}>${t2.legajo} — ${t2.nombre}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-sm" style="margin-top:10px;color:var(--urg);border-color:var(--urg)" onclick="dmTrabajos.splice(${i},1);renderTablaMultiple(dmTrabajos)">✕ Quitar</button>
+    </div>`;
+  }).join('');
+}
+
+async function confirmarMultiple() {
+  if (!checkOnline()) { toast('Sin conexión', 'err'); return; }
+  const validos = dmTrabajos.filter(t => t.descripcion && t.sector);
+  if (!validos.length) { toast('Completá al menos descripción y sector en cada trabajo', 'err'); return; }
+
+  showLoading('Creando trabajos...');
+  let creados = 0;
+  for (const t of validos) {
+    try {
+      const res = await callScript('crearTrabajo', {
+        descripcion: t.descripcion,
+        sector: t.sector,
+        asignar: t.legajo ? true : false,
+        mecanicos: t.legajo ? [t.legajo] : [],
+        prioridad: 'Normal'
+      });
+      if (res.ok) creados++;
+    } catch(e) {}
+  }
+  hideLoading();
+  toast(creados + ' trabajo' + (creados !== 1 ? 's' : '') + ' creado' + (creados !== 1 ? 's' : '') + ' ✓', 'ok');
+  cerrarDictadoMultiple();
+  await cargarDatos();
 }
 
 // ============================================================
