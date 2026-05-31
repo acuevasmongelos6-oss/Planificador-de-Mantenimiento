@@ -711,7 +711,10 @@ input[type=text]:focus, input[type=date]:focus, select:focus, textarea:focus {
       <p style="font-size:11px;font-family:var(--font-mono);color:var(--text2);letter-spacing:.06em;text-transform:uppercase;margin:0 0 10px">Texto a procesar</p>
       <textarea id="dm-input" placeholder="Ej: Ojeda va a reparar la puerta de la cámara fría, Cabrera revisará el compresor del túnel 1..." style="width:100%;height:120px;resize:none;font-size:14px;padding:10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font-sans)"></textarea>
       <div style="display:flex;gap:8px;margin-top:10px">
-        <button class="btn btn-sm" onclick="dictarMultiple()" id="dm-mic-btn">🎤 Dictar</button>
+        <button class="btn btn-sm" id="dm-mic-btn"
+          onmousedown="iniciarDictadoMultiple()" onmouseup="detenerDictadoMultiple()"
+          ontouchstart="iniciarDictadoMultiple()" ontouchend="detenerDictadoMultiple()"
+          style="user-select:none">🎤 Mantené para dictar</button>
         <button class="btn btn-sm btn-primary" onclick="procesarMultiple()" id="dm-procesar-btn">✦ Procesar con IA</button>
       </div>
     </div>
@@ -858,7 +861,7 @@ input[type=text]:focus, input[type=date]:focus, select:focus, textarea:focus {
       <label class="field-label">Descripción</label>
       <div style="display:flex;gap:6px">
         <input type="text" id="nuevo-desc" placeholder="Escribí o dictá..." style="flex:1" oninput="updateCodigo()">
-        <button class="btn btn-sm" onclick="dictarCampo('nuevo-desc','nuevo-desc-ia')" title="Dictar">🎤</button>
+        <button class="btn btn-sm" id="mic-desc" onmousedown="iniciarDictado('nuevo-desc','nuevo-desc-ia','mic-desc')" onmouseup="detenerDictado('mic-desc')" ontouchstart="iniciarDictado('nuevo-desc','nuevo-desc-ia','mic-desc')" ontouchend="detenerDictado('mic-desc')" title="Mantené para dictar" style="user-select:none">🎤</button>
       </div>
       <div class="ia-suggestion" id="nuevo-desc-ia">
         <div class="ia-text" id="nuevo-desc-ia-text"></div>
@@ -875,7 +878,7 @@ input[type=text]:focus, input[type=date]:focus, select:focus, textarea:focus {
         <select id="nuevo-sector" style="flex:1" onchange="updateCodigo()">
           <option value="">Seleccionar...</option>
         </select>
-        <button class="btn btn-sm" onclick="dictarSector()" title="Dictar sector">🎤</button>
+        <button class="btn btn-sm" id="mic-sector" onmousedown="iniciarDictadoSector('mic-sector')" onmouseup="detenerDictado('mic-sector')" ontouchstart="iniciarDictadoSector('mic-sector')" ontouchend="detenerDictado('mic-sector')" title="Mantené para dictar" style="user-select:none">🎤</button>
       </div>
       <div class="ia-suggestion" id="nuevo-sector-ia">
         <div class="ia-text" style="margin-bottom:8px;color:var(--text2)">Seleccioná el sector más aproximado:</div>
@@ -1513,26 +1516,81 @@ function getMecsFromContainer(containerId) {
 // VOZ + IA
 // ============================================================
 let recognition = null;
+let recognitionActive = false;
 
-function dictarCampo(inputId, sugerenciaId) {
+function iniciarDictado(inputId, sugerenciaId, btnId) {
   if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-    toast('Tu navegador no soporta dictado por voz', 'err');
-    return;
+    toast('Tu navegador no soporta dictado por voz', 'err'); return;
   }
+  const btn = document.getElementById(btnId);
+  btn.textContent = '🔴';
+  btn.style.color = 'var(--urg)';
+
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   recognition = new SR();
   recognition.lang = 'es-ES';
-  recognition.interimResults = false;
-  recognition.onresult = async (e) => {
-    const texto = e.results[0][0].transcript;
-    // Pedir a IA que reformatee
-    const sugerencia = await mejorarDescripcionIA(texto);
-    document.getElementById(sugerenciaId + '-text').textContent = sugerencia;
-    document.getElementById(sugerenciaId).style.display = 'block';
+  recognition.interimResults = true;
+  recognition.continuous = true;
+  recognitionActive = true;
+
+  let textoFinal = '';
+  recognition.onresult = (e) => {
+    textoFinal = '';
+    for (let i = 0; i < e.results.length; i++) {
+      textoFinal += e.results[i][0].transcript;
+    }
+    document.getElementById(inputId).value = textoFinal;
   };
-  recognition.onerror = () => toast('Error en dictado', 'err');
+
+  recognition.onend = async () => {
+    if (textoFinal) {
+      const sugerencia = await mejorarDescripcionIA(textoFinal);
+      document.getElementById(sugerenciaId + '-text').textContent = sugerencia;
+      document.getElementById(sugerenciaId).style.display = 'block';
+    }
+  };
+
+  recognition.onerror = () => { detenerDictado(btnId); toast('Error en dictado', 'err'); };
   recognition.start();
-  toast('Dictando... hablá ahora', '');
+}
+
+function iniciarDictadoSector(btnId) {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    toast('Tu navegador no soporta dictado por voz', 'err'); return;
+  }
+  const btn = document.getElementById(btnId);
+  btn.textContent = '🔴';
+  btn.style.color = 'var(--urg)';
+
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SR();
+  recognition.lang = 'es-ES';
+  recognition.interimResults = true;
+  recognition.continuous = true;
+
+  let textoFinal = '';
+  recognition.onresult = (e) => {
+    textoFinal = '';
+    for (let i = 0; i < e.results.length; i++) {
+      textoFinal += e.results[i][0].transcript;
+    }
+  };
+
+  recognition.onend = async () => {
+    if (textoFinal) {
+      const opciones = await buscarSectoresIA(textoFinal);
+      mostrarOpcionesSector(opciones);
+    }
+  };
+
+  recognition.onerror = () => { detenerDictado(btnId); toast('Error en dictado', 'err'); };
+  recognition.start();
+}
+
+function detenerDictado(btnId) {
+  if (recognition) { recognition.stop(); recognition = null; }
+  const btn = document.getElementById(btnId);
+  if (btn) { btn.textContent = '🎤'; btn.style.color = ''; }
 }
 
 function aceptarIASugerencia(inputId, sugerenciaId) {
@@ -1540,25 +1598,6 @@ function aceptarIASugerencia(inputId, sugerenciaId) {
   document.getElementById(inputId).value = texto;
   document.getElementById(sugerenciaId).style.display = 'none';
   updateCodigo();
-}
-
-async function dictarSector() {
-  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-    toast('Tu navegador no soporta dictado por voz', 'err');
-    return;
-  }
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  recognition = new SR();
-  recognition.lang = 'es-ES';
-  recognition.interimResults = false;
-  recognition.onresult = async (e) => {
-    const texto = e.results[0][0].transcript;
-    const opciones = await buscarSectoresIA(texto);
-    mostrarOpcionesSector(opciones);
-  };
-  recognition.onerror = () => toast('Error en dictado', 'err');
-  recognition.start();
-  toast('Dictando sector... hablá ahora', '');
 }
 
 function mostrarOpcionesSector(opciones) {
@@ -1652,22 +1691,56 @@ function cerrarDictadoMultiple() {
   document.getElementById('screen-multiple').style.display = 'none';
 }
 
-function dictarMultiple() {
+let dmRecognition = null;
+
+function iniciarDictadoMultiple() {
   if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
     toast('Tu navegador no soporta dictado por voz', 'err'); return;
   }
+  const btn = document.getElementById('dm-mic-btn');
+  btn.textContent = '🔴 Grabando...';
+  btn.style.borderColor = 'var(--urg)';
+  btn.style.color = 'var(--urg)';
+
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const rec = new SR();
-  rec.lang = 'es-ES';
-  rec.interimResults = false;
-  rec.onresult = (e) => {
-    const texto = e.results[0][0].transcript;
+  dmRecognition = new SR();
+  dmRecognition.lang = 'es-ES';
+  dmRecognition.interimResults = true;
+  dmRecognition.continuous = true;
+
+  dmRecognition.onresult = (e) => {
+    let texto = '';
+    for (let i = 0; i < e.results.length; i++) {
+      texto += e.results[i][0].transcript;
+    }
     const input = document.getElementById('dm-input');
-    input.value = input.value ? input.value + ' ' + texto : texto;
+    // Mostrar texto parcial
+    input.value = (input.dataset.base || '') + texto;
   };
-  rec.onerror = () => toast('Error en dictado', 'err');
-  rec.start();
-  toast('Dictando... hablá ahora', '');
+
+  dmRecognition.onerror = () => {
+    detenerDictadoMultiple();
+    toast('Error en dictado', 'err');
+  };
+
+  // Guardar base actual antes de dictar
+  const input = document.getElementById('dm-input');
+  input.dataset.base = input.value ? input.value + ' ' : '';
+  dmRecognition.start();
+}
+
+function detenerDictadoMultiple() {
+  if (dmRecognition) {
+    dmRecognition.stop();
+    dmRecognition = null;
+  }
+  const btn = document.getElementById('dm-mic-btn');
+  btn.textContent = '🎤 Mantené para dictar';
+  btn.style.borderColor = '';
+  btn.style.color = '';
+  // Limpiar base guardada
+  const input = document.getElementById('dm-input');
+  input.dataset.base = input.value + ' ';
 }
 
 async function procesarMultiple() {
