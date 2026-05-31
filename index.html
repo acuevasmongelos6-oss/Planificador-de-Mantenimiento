@@ -759,6 +759,7 @@ input[type=text]:focus, input[type=date]:focus, select:focus, textarea:focus {
       <input type="date" id="editar-fecha">
     </div>
     <div class="modal-footer">
+      <button class="btn btn-sm btn-danger" onclick="confirmarDesasignar()">Desasignar</button>
       <button class="btn btn-sm" onclick="closeModal('modal-editar')">Cancelar</button>
       <button class="btn btn-sm btn-primary" onclick="confirmarEditar()">Guardar</button>
     </div>
@@ -1242,6 +1243,30 @@ function abrirEditarAsig(codigo) {
     addMecRow('editar-mecs', i === 0, leg, !!notificado);
   });
   openModal('modal-editar');
+}
+
+async function confirmarDesasignar() {
+  const tarea = tareas.find(t => t.codigo === currentCodigo);
+  if (!tarea) return;
+  // Verificar si algún mecánico ya notificó
+  const hayNotificado = (tarea.mecsDetalle || []).some(m => m.estado === 'notificada');
+  if (hayNotificado) {
+    toast('No se puede desasignar — hay mecánicos que ya notificaron', 'err');
+    return;
+  }
+  if (!checkOnline()) { toast('Sin conexión', 'err'); return; }
+  showLoading('Desasignando...');
+  try {
+    const res = await callScript('desasignarTarea', { codigo: currentCodigo });
+    if (res.ok) {
+      toast('Tarea devuelta a pendientes ✓', 'ok');
+      closeModal('modal-editar');
+      await cargarDatos();
+    } else {
+      toast(res.error || 'Error al desasignar', 'err');
+    }
+  } catch(e) { toast('Error de conexión', 'err'); }
+  hideLoading();
 }
 
 async function confirmarEditar() {
