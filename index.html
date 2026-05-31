@@ -651,10 +651,7 @@ input[type=text]:focus, input[type=date]:focus, select:focus, textarea:focus {
         <div class="counter-label">Asignadas</div>
         <div class="counter-val" id="cnt-asignadas">—</div>
       </div>
-      <div class="counter-card">
-        <div class="counter-label">Pend. OS SAP</div>
-        <div class="counter-val" id="cnt-pendos" style="color:var(--urg)">—</div>
-      </div>
+
       <div class="counter-card">
         <div class="counter-label">Finalizadas</div>
         <div class="counter-val" id="cnt-fin" style="color:var(--baja)">—</div>
@@ -683,18 +680,7 @@ input[type=text]:focus, input[type=date]:focus, select:focus, textarea:focus {
       <div class="section-body" id="sec-asig"></div>
     </div>
 
-    <!-- SECCIÓN 3: Pendientes de OS -->
-    <div class="section">
-      <div class="section-header" onclick="toggleSection('sec-os')">
-        <div class="section-dot" style="background:var(--urg)"></div>
-        <div class="section-title">Pendientes de OS SAP</div>
-        <div class="section-hint">Notificadas primero</div>
-        <div class="section-count" id="sc-os">0</div>
-      </div>
-      <div class="section-body" id="sec-os"></div>
-    </div>
-
-    <!-- SECCIÓN 4: Finalizadas -->
+    <!-- SECCIÓN 3: Finalizadas -->
     <div class="section">
       <div class="section-header" onclick="toggleSection('sec-fin')">
         <div class="section-dot" style="background:var(--baja)"></div>
@@ -1037,29 +1023,20 @@ function renderTodo() {
   const cmSinAsignar = tareas.filter(t => t.tipo === 'CM' && t.estado === 'sin_asignar');
   const pendientes   = [...ncs, ...cmSinAsignar];
 
-  const asignadas    = tareas.filter(t => t.estado === 'asignada');
-  const pendOS       = tareas.filter(t => t.estado !== 'sin_asignar' && t.estado !== 'finalizada' && !t.os_sap);
-  // Notificadas sin OS primero
-  const pendOSSort   = [...pendOS].sort((a,b) => {
-    const aNotif = (a.mecsDetalle || []).some(m => m.estado === 'notificada') ? 0 : 1;
-    const bNotif = (b.mecsDetalle || []).some(m => m.estado === 'notificada') ? 0 : 1;
-    return aNotif - bNotif;
-  });
+  // Asignadas = asignada + pendiente de OS (notificada sin OS)
+  const asignadas    = tareas.filter(t => t.estado !== 'sin_asignar' && t.estado !== 'finalizada');
   const finalizadas  = tareas.filter(t => t.estado === 'finalizada');
 
   // Counters
   document.getElementById('cnt-sinasignar').textContent = pendientes.length;
   document.getElementById('cnt-asignadas').textContent  = asignadas.length;
-  document.getElementById('cnt-pendos').textContent     = pendOSSort.length;
   document.getElementById('cnt-fin').textContent        = finalizadas.length;
   document.getElementById('sc-pend').textContent        = pendientes.length;
   document.getElementById('sc-asig').textContent        = asignadas.length;
-  document.getElementById('sc-os').textContent          = pendOSSort.length;
   document.getElementById('sc-fin').textContent         = finalizadas.length;
 
   renderSectionPend(pendientes);
   renderSectionAsig(asignadas);
-  renderSectionOS(pendOSSort);
   renderSectionFin(finalizadas);
 }
 
@@ -1103,10 +1080,18 @@ function renderSectionPend(items) {
 function renderSectionAsig(items) {
   const el = document.getElementById('sec-asig');
   if (!items.length) { el.innerHTML = '<div class="empty-state">Sin tareas asignadas</div>'; return; }
-  el.innerHTML = items.map(t => {
+  const LIMIT = 5;
+  let expanded = false;
+
+  const buildRow = (t) => {
     const titulo = t.descripcion.includes('_CM') ? t.descripcion.substring(0, t.descripcion.indexOf('_CM')).replace(/_/g,' ') + ' — ' + t.descripcion.substring(t.descripcion.lastIndexOf('_')+1) : t.descripcion.split('_').join(' ');
     const mecs   = nombresToStr(t.mecanicos);
     const pClass = prioClass(t.prioridad);
+    const notif  = (t.mecsDetalle||[]).some(m => m.estado === 'notificada');
+    const tieneOS = t.os_sap && t.os_sap.trim() !== '';
+    let estadoBadge = '';
+    if (notif && !tieneOS) estadoBadge = `<span class="badge badge-notif">Notificada sin OS</span>`;
+    else if (!tieneOS)     estadoBadge = `<span class="badge badge-sinos">Sin OS</span>`;
     return `
     <div class="task-row">
       <div class="task-main">
@@ -1114,13 +1099,28 @@ function renderSectionAsig(items) {
         <div class="task-sub">
           <span class="badge badge-${t.tipo.toLowerCase()}">${t.tipo}</span>
           <span>${mecs}</span>
-          ${t.fechaRef ? `<span>${t.fechaRef}</span>` : ''}
+          ${estadoBadge}
         </div>
       </div>
       <span class="prio ${pClass}" onclick="abrirPrioridad('${t.codigo}')">${t.prioridad || 'Normal'}</span>
+      ${!tieneOS ? `<button class="btn btn-sm btn-primary" onclick="abrirOS('${t.codigo}')">Cargar OS</button>` : ''}
       <button class="btn btn-sm" onclick="abrirEditarAsig('${t.codigo}')">Editar</button>
     </div>`;
-  }).join('');
+  };
+
+  const render = (showAll) => {
+    const visible = showAll ? items : items.slice(0, LIMIT);
+    const rows = visible.map(buildRow).join('');
+    const btn = items.length > LIMIT
+      ? showAll
+        ? `<div style="padding:10px 0;text-align:center"><button class="btn btn-sm" onclick="toggleAsig(false)">Ver menos</button></div>`
+        : `<div style="padding:10px 0;text-align:center"><button class="btn btn-sm" onclick="toggleAsig(true)">Ver todas (${items.length})</button></div>`
+      : '';
+    el.innerHTML = rows + btn;
+  };
+
+  window.toggleAsig = (showAll) => render(showAll);
+  render(false);
 }
 
 function renderSectionOS(items) {
