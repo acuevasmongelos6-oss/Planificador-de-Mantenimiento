@@ -1071,6 +1071,23 @@ async function recargar() {
   toast('Datos actualizados', 'ok');
 }
 
+// Recarga solo tareas y NCs (sin getDatos) — para después de crear trabajos
+async function recargarTareas() {
+  showLoading('Actualizando...');
+  try {
+    const [resTareas, resNCs] = await Promise.all([
+      callScript('getTareas'),
+      callScript('getNCs')
+    ]);
+    if (resTareas.ok) tareas = resTareas.data;
+    if (resNCs.ok)    ncs    = resNCs.data;
+    renderTodo();
+  } catch(e) {
+    toast('Error al actualizar', 'err');
+  }
+  hideLoading();
+}
+
 function poblarSectores() {
   const sel = document.getElementById('nuevo-sector');
   sel.innerHTML = '<option value="">Seleccionar...</option>';
@@ -1892,11 +1909,20 @@ async function confirmarMultiple() {
         os_sap:          t.os_sap || '',
         fechaReferencia: t.fechaReferencia || ''
       }));
+      console.log('[BATCH] esExcel:', esExcel, '| payload size:', JSON.stringify(payload).length, 'bytes | trabajos:', payload.length);
       const res = await callScript('crearTrabajosBatch', { trabajos: payload });
+      console.log('[BATCH] respuesta:', JSON.stringify(res).slice(0, 300));
       hideLoading();
       if (res.ok) {
         const creados    = res.data.creados;
         const duplicados = res.data.duplicados || [];
+
+        // Inyectar tareas en el array local sin roundtrip extra
+        if (res.data.tareas && res.data.tareas.length) {
+          tareas = tareas.concat(res.data.tareas);
+          renderTodo();
+        }
+
         if (!duplicados.length) {
           toast(creados + ' trabajo' + (creados !== 1 ? 's' : '') + ' creado' + (creados !== 1 ? 's' : '') + ' ✓', 'ok');
         } else {
@@ -1931,10 +1957,10 @@ async function confirmarMultiple() {
     }
     hideLoading();
     toast(creados + ' trabajo' + (creados !== 1 ? 's' : '') + ' creado' + (creados !== 1 ? 's' : '') + ' ✓', 'ok');
+    await recargarTareas(); // solo para dictado manual
   }
 
   cerrarDictadoMultiple();
-  await cargarDatos();
 }
 
 function mostrarDuplicados(lista) {
