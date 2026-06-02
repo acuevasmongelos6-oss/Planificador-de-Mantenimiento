@@ -687,10 +687,22 @@ input[type=text]:focus, input[type=date]:focus, select:focus, textarea:focus {
       <div class="section-header" onclick="toggleSection('sec-fin')">
         <div class="section-dot" style="background:var(--baja)"></div>
         <div class="section-title">Finalizadas</div>
-        <div class="section-hint">No editables</div>
+        <div class="section-hint">Pendientes de notificar en SAP</div>
         <div class="section-count" id="sc-fin">0</div>
+        <button class="btn btn-sm" style="font-size:11px;color:var(--ok);border-color:var(--ok);margin-left:8px" onclick="event.stopPropagation();exportarFinalizadas()">↓ Exportar Excel</button>
       </div>
       <div class="section-body collapsed" id="sec-fin"></div>
+
+      <!-- SECCION NOTIFICADAS SAP -->
+      <div class="section-card" style="margin-top:12px">
+        <div class="section-header" onclick="toggleSection('sec-notif-sap')">
+          <div class="section-dot" style="background:var(--text3)"></div>
+          <div class="section-title">Finalizadas · Notificadas en SAP</div>
+          <div class="section-hint">No editables</div>
+          <div class="section-count" id="sc-notif-sap">0</div>
+        </div>
+        <div class="section-body collapsed" id="sec-notif-sap"></div>
+      </div>
     </div>
 
   </div>
@@ -1103,24 +1115,24 @@ function poblarSectores() {
 // ============================================================
 function renderTodo() {
   // Pendientes de asignar = NCs + CMs sin asignar
-  const cmSinAsignar = tareas.filter(t => t.tipo === 'CM' && t.estado === 'sin_asignar');
-  const pendientes   = [...ncs, ...cmSinAsignar];
+  const cmSinAsignar  = tareas.filter(t => t.tipo === 'CM' && t.estado === 'sin_asignar');
+  const pendientes    = [...ncs, ...cmSinAsignar];
+  const asignadas     = tareas.filter(t => t.estado !== 'sin_asignar' && t.estado !== 'finalizada');
+  const finalizadas   = tareas.filter(t => t.estado === 'finalizada' && !t.notificado_sap);
+  const notifSAP      = tareas.filter(t => t.estado === 'finalizada' && t.notificado_sap === 'SI');
 
-  // Asignadas = asignada + pendiente de OS (notificada sin OS)
-  const asignadas    = tareas.filter(t => t.estado !== 'sin_asignar' && t.estado !== 'finalizada');
-  const finalizadas  = tareas.filter(t => t.estado === 'finalizada');
-
-  // Counters
   document.getElementById('cnt-sinasignar').textContent = pendientes.length;
   document.getElementById('cnt-asignadas').textContent  = asignadas.length;
   document.getElementById('cnt-fin').textContent        = finalizadas.length;
   document.getElementById('sc-pend').textContent        = pendientes.length;
   document.getElementById('sc-asig').textContent        = asignadas.length;
   document.getElementById('sc-fin').textContent         = finalizadas.length;
+  document.getElementById('sc-notif-sap').textContent   = notifSAP.length;
 
   renderSectionPend(pendientes);
   renderSectionAsig(asignadas);
   renderSectionFin(finalizadas);
+  renderSectionNotifSAP(notifSAP);
 }
 
 function renderSectionPend(items) {
@@ -1232,9 +1244,10 @@ function renderSectionOS(items) {
 
 function renderSectionFin(items) {
   const el = document.getElementById('sec-fin');
-  if (!items.length) { el.innerHTML = '<div class="empty-state">Sin tareas finalizadas</div>'; return; }
-  el.innerHTML = items.map(t => {
-    const titulo = t.descripcion.includes('_CM') ? t.descripcion.substring(0, t.descripcion.indexOf('_CM')).replace(/_/g,' ') + ' — ' + t.descripcion.substring(t.descripcion.lastIndexOf('_')+1) : t.descripcion.split('_').join(' ');
+  if (!items.length) { el.innerHTML = '<div class="empty-state">Sin tareas finalizadas pendientes de notificar</div>'; return; }
+  const colHdr = '<div style="display:flex;justify-content:flex-end;padding:4px 16px;border-bottom:1px solid var(--border)"><span style="font-size:10px;font-family:var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--text3)">Notificada SAP</span></div>';
+  const rows = items.map(t => {
+    const titulo = t.descripcion.includes('_CM') ? t.descripcion.substring(0, t.descripcion.indexOf('_CM')).replace(/_/g,' ') : t.descripcion.split('_').join(' ');
     const mecs   = nombresToStr(t.mecanicos);
     const pClass = prioClass(t.prioridad);
     return `
@@ -1248,9 +1261,90 @@ function renderSectionFin(items) {
         </div>
       </div>
       <span class="prio ${pClass} prio-static">${t.prioridad || 'Normal'}</span>
-      <span style="font-size:11px;color:var(--text3);font-style:italic">No editable</span>
+      <input type="checkbox" style="width:16px;height:16px;cursor:pointer;accent-color:var(--ok)" onchange="toggleNotificadoSAP('${t.codigo}', ${t.fila_plan}, this.checked)">
     </div>`;
   }).join('');
+  el.innerHTML = colHdr + rows;
+}
+
+async function toggleNotificadoSAP(codigo, filaPlan, checked) {
+  if (!checkOnline()) { toast('Sin conexión', 'err'); return; }
+  const res = await callScript('marcarNotificadoSAP', { fila_plan: filaPlan, valor: checked ? 'SI' : '' });
+  if (res.ok) {
+    // Actualizar localmente sin reload
+    const t = tareas.find(x => x.codigo === codigo);
+    if (t) t.notificado_sap = checked ? 'SI' : '';
+    renderTodo();
+    toast(checked ? 'Marcada como notificada en SAP' : 'Desmarcada', 'ok');
+  } else {
+    toast('Error al guardar', 'err');
+  }
+}
+
+function renderSectionNotifSAP(items) {
+  const el = document.getElementById('sec-notif-sap');
+  if (!items.length) { el.innerHTML = '<div class="empty-state">Sin tareas notificadas en SAP</div>'; return; }
+  el.innerHTML = items.map(t => {
+    const titulo = t.descripcion.includes('_CM') ? t.descripcion.substring(0, t.descripcion.indexOf('_CM')).replace(/_/g,' ') : t.descripcion.split('_').join(' ');
+    const mecs   = nombresToStr(t.mecanicos);
+    const pClass = prioClass(t.prioridad);
+    return `
+    <div class="task-row" style="opacity:.55">
+      <div class="task-main">
+        <div class="task-title">${titulo}</div>
+        <div class="task-sub">
+          <span class="badge badge-${t.tipo.toLowerCase()}">${t.tipo}</span>
+          <span>${mecs}</span>
+          ${t.os_sap ? `<span>OS: ${t.os_sap}</span>` : ''}
+        </div>
+      </div>
+      <span class="prio ${pClass} prio-static">${t.prioridad || 'Normal'}</span>
+      <span style="font-size:11px;color:var(--ok)">✓ Notificada</span>
+    </div>`;
+  }).join('');
+}
+
+function exportarFinalizadas() {
+  const pendientes = tareas.filter(t => t.estado === 'finalizada' && !t.notificado_sap);
+  if (!pendientes.length) { toast('No hay finalizadas pendientes de notificar', 'err'); return; }
+
+  const normF = (val) => {
+    if (!val && val !== 0) return '';
+    const s = String(val).trim();
+    if (!s || s === '0') return '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) { const [y,m,d] = s.split('-'); return d+'.'+m+'.'+y; }
+    return s;
+  };
+  const fmtHora = h => { if (!h) return ''; const p = String(h).split(':'); return p[0].padStart(2,'0')+':'+(p[1]||'00').padStart(2,'0')+':00'; };
+  const calcH   = (ini,fin) => {
+    const toMin = t => { if (!t) return -1; const s = String(t).replace(/:\d{2}$/, ''); const p = s.split(':'); const h = parseInt(p[0]), m = parseInt(p[1]||0); return isNaN(h)||isNaN(m)?-1:h*60+m; };
+    const d = toMin(fin) - toMin(ini); return d > 0 ? d/60 : 0;
+  };
+
+  // Cruzar con mecsDetalle para obtener datos de Operaciones
+  const filas = [];
+  pendientes.forEach(t => {
+    (t.mecsDetalle || []).forEach(m => {
+      filas.push([
+        t.os_sap ? parseInt(t.os_sap) || t.os_sap : '',
+        normF(t.fechaRef),
+        normF(t.fechaRef),
+        fmtHora(m.hora_inicio || ''),
+        fmtHora(m.hora_fin   || ''),
+        m.horas ? parseFloat(parseFloat(m.horas).toFixed(1)) : 0,
+        m.legajo ? parseInt(m.legajo) || m.legajo : ''
+      ]);
+    });
+  });
+
+  const wsData = [['ORDEN','FECHA','FECHA','HS INICIO','HS FIN','HRS TRABJ.','LEGAJO1'], ...filas];
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols'] = [{wch:14},{wch:12},{wch:12},{wch:12},{wch:12},{wch:10},{wch:10}];
+  XLSX.utils.book_append_sheet(wb, ws, 'Notificaciones');
+  const hoy = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, 'NOTIF_SAP_' + hoy + '.xlsx');
+  toast('Excel generado ✓', 'ok');
 }
 
 // ============================================================
