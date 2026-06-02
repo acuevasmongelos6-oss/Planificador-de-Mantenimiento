@@ -1735,7 +1735,11 @@ function abrirDictadoMultiple() {
   document.getElementById('dm-resultado').style.display = 'none';
   document.getElementById('dm-error').style.display = 'none';
   document.getElementById('dm-input').value = '';
+  document.getElementById('dm-excel-info').style.display = 'none';
+  document.getElementById('dm-excel-info').textContent = '';
+  document.getElementById('dm-excel-input').value = '';
   dmTrabajos = [];
+  dmDesdeExcel = false;
 }
 
 function cerrarDictadoMultiple() {
