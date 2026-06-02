@@ -592,6 +592,7 @@ input[type=text]:focus, input[type=date]:focus, select:focus, textarea:focus {
   .task-row { gap: 8px; }
 }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -710,13 +711,16 @@ input[type=text]:focus, input[type=date]:focus, select:focus, textarea:focus {
     <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px">
       <p style="font-size:11px;font-family:var(--font-mono);color:var(--text2);letter-spacing:.06em;text-transform:uppercase;margin:0 0 10px">Texto a procesar</p>
       <textarea id="dm-input" placeholder="Ej: Ojeda va a reparar la puerta de la cámara fría, Cabrera revisará el compresor del túnel 1..." style="width:100%;height:120px;resize:none;font-size:14px;padding:10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font-sans)"></textarea>
-      <div style="display:flex;gap:8px;margin-top:10px">
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
         <button class="btn btn-sm" id="dm-mic-btn"
           onmousedown="iniciarDictadoMultiple()" onmouseup="detenerDictadoMultiple()"
           ontouchstart="iniciarDictadoMultiple()" ontouchend="detenerDictadoMultiple()"
           style="user-select:none">🎤 Mantené para dictar</button>
+        <button class="btn btn-sm" onclick="document.getElementById('dm-excel-input').click()">📎 Cargar Excel</button>
+        <input type="file" id="dm-excel-input" accept=".xlsx,.xls" style="display:none" onchange="cargarExcelMultiple(this)">
         <button class="btn btn-sm btn-primary" onclick="procesarMultiple()" id="dm-procesar-btn">✦ Procesar con IA</button>
       </div>
+      <div id="dm-excel-info" style="display:none;margin-top:8px;font-size:12px;color:var(--ok);font-family:var(--font-mono)"></div>
     </div>
 
     <!-- Resultado -->
@@ -1543,14 +1547,28 @@ function iniciarDictado(inputId, sugerenciaId, btnId) {
   };
 
   recognition.onend = async () => {
-    if (textoFinal) {
+    if (recognition !== null) {
+      // Boton todavia presionado — reiniciar
+      try {
+        const SR2 = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const rec2 = new SR2();
+        rec2.lang = 'es-ES';
+        rec2.interimResults = true;
+        rec2.continuous = true;
+        rec2.onresult = recognition ? recognition.onresult : null;
+        rec2.onend = recognition ? recognition.onend : null;
+        rec2.onerror = () => {};
+        rec2.start();
+        recognition = rec2;
+      } catch(e) {}
+    } else if (textoFinal) {
       const sugerencia = await mejorarDescripcionIA(textoFinal);
       document.getElementById(sugerenciaId + '-text').textContent = sugerencia;
       document.getElementById(sugerenciaId).style.display = 'block';
     }
   };
 
-  recognition.onerror = () => { detenerDictado(btnId); toast('Error en dictado', 'err'); };
+  recognition.onerror = () => {};
   recognition.start();
 }
 
@@ -1719,10 +1737,23 @@ function iniciarDictadoMultiple() {
     input.value = base + textoNuevo;
   };
 
-  dmRecognition.onerror = () => {
-    detenerDictadoMultiple();
-    toast('Error en dictado', 'err');
+  // Reiniciar automaticamente si corta mientras el boton sigue presionado
+  dmRecognition.onend = () => {
+    if (dmRecognition !== null) {
+      // El boton sigue presionado — reiniciar
+      const SR2 = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const rec2 = new SR2();
+      rec2.lang = 'es-ES';
+      rec2.interimResults = true;
+      rec2.continuous = true;
+      rec2.onresult = dmRecognition ? dmRecognition.onresult : null;
+      rec2.onend = dmRecognition ? dmRecognition.onend : null;
+      rec2.onerror = () => {};
+      try { rec2.start(); dmRecognition = rec2; } catch(e) {}
+    }
   };
+
+  dmRecognition.onerror = () => {};
 
   // Guardar base actual antes de dictar
   const input = document.getElementById('dm-input');
@@ -1776,7 +1807,7 @@ function renderTablaMultiple(trabajos) {
   const cont = document.getElementById('dm-tabla');
   cont.innerHTML = trabajos.map((t, i) => {
     const tec = tecnicos.find(x => x.legajo === t.legajo);
-    const nomTec = tec ? tec.nombre : (t.legajo || '');
+    const tieneOS = t.os_sap && t.os_sap.toString().trim();
     return `
     <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px">
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;align-items:start">
@@ -1799,6 +1830,16 @@ function renderTablaMultiple(trabajos) {
           </select>
         </div>
       </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;align-items:start">
+        <div>
+          <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;font-family:var(--font-mono);text-transform:uppercase">OS SAP ${tieneOS ? '<span style="color:var(--ok)">✓</span>' : ''}</label>
+          <input type="text" value="${t.os_sap || ''}" onchange="dmTrabajos[${i}].os_sap=this.value" placeholder="Opcional" style="width:100%;font-size:13px${tieneOS ? ';border-color:var(--ok)' : ''}">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;font-family:var(--font-mono);text-transform:uppercase">Fecha de referencia</label>
+          <input type="date" value="${t.fechaReferencia || ''}" onchange="dmTrabajos[${i}].fechaReferencia=this.value" style="width:100%;font-size:13px">
+        </div>
+      </div>
       <button class="btn btn-sm" style="margin-top:10px;color:var(--urg);border-color:var(--urg)" onclick="dmTrabajos.splice(${i},1);renderTablaMultiple(dmTrabajos)">✕ Quitar</button>
     </div>`;
   }).join('');
@@ -1818,7 +1859,9 @@ async function confirmarMultiple() {
         sector: t.sector,
         asignar: t.legajo ? true : false,
         mecanicos: t.legajo ? [t.legajo] : [],
-        prioridad: 'Normal'
+        prioridad: 'Normal',
+        os_sap: t.os_sap || '',
+        fechaReferencia: t.fechaReferencia || ''
       });
       if (res.ok) creados++;
     } catch(e) {}
@@ -1826,7 +1869,93 @@ async function confirmarMultiple() {
   hideLoading();
   toast(creados + ' trabajo' + (creados !== 1 ? 's' : '') + ' creado' + (creados !== 1 ? 's' : '') + ' ✓', 'ok');
   cerrarDictadoMultiple();
+
   await cargarDatos();
+}
+
+// ============================================================
+// CARGAR EXCEL EN DICTADO MÚLTIPLE
+// ============================================================
+function cargarExcelMultiple(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data  = new Uint8Array(e.target.result);
+      const wb    = XLSX.read(data, { type: 'array', cellDates: true });
+      const ws    = wb.Sheets[wb.SheetNames[0]];
+      const rows  = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+
+      // Saltar fila de headers (fila 0), procesar desde fila 1
+      // Col A=0(Plan) B=1(OS) C=2(Desc) D=3(Sector) E=4(Legajo) H=7(Fecha)
+      const trabajos = [];
+      for (let i = 1; i < rows.length; i++) {
+        const row  = rows[i];
+        const desc = (row[2] || '').toString().trim();
+        const sec  = (row[3] || '').toString().trim();
+        if (!desc && !sec) continue;
+
+        const legajoRaw = (row[4] || '').toString().trim();
+        const osRaw     = (row[1] || '').toString().trim();
+        const fechaRaw  = row[7];
+
+        // Normalizar fecha
+        let fechaStr = '';
+        if (fechaRaw instanceof Date && !isNaN(fechaRaw)) {
+          const yy = fechaRaw.getFullYear();
+          const mm = String(fechaRaw.getMonth() + 1).padStart(2, '0');
+          const dd = String(fechaRaw.getDate()).padStart(2, '0');
+          fechaStr = yy + '-' + mm + '-' + dd;
+        } else if (typeof fechaRaw === 'number' && fechaRaw > 1000) {
+          // Número serial de Excel
+          const d = new Date(Math.round((fechaRaw - 25569) * 86400 * 1000));
+          const yy = d.getUTCFullYear();
+          const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+          const dd = String(d.getUTCDate()).padStart(2, '0');
+          fechaStr = yy + '-' + mm + '-' + dd;
+        } else if (typeof fechaRaw === 'string' && fechaRaw.trim()) {
+          // Intentar parsear dd/MM/yyyy o yyyy-MM-dd
+          const parts = fechaRaw.trim().split(/[\/\-]/);
+          if (parts.length === 3) {
+            if (parts[0].length === 4) {
+              fechaStr = parts[0] + '-' + parts[1].padStart(2,'0') + '-' + parts[2].padStart(2,'0');
+            } else {
+              fechaStr = parts[2] + '-' + parts[1].padStart(2,'0') + '-' + parts[0].padStart(2,'0');
+            }
+          }
+        }
+
+        trabajos.push({
+          descripcion:    desc,
+          sector:         sec,
+          legajo:         legajoRaw,
+          os_sap:         osRaw,
+          fechaReferencia: fechaStr
+        });
+      }
+
+      if (!trabajos.length) {
+        toast('No se encontraron filas con datos en el Excel', 'err');
+        input.value = '';
+        return;
+      }
+
+      dmTrabajos = trabajos;
+      renderTablaMultiple(dmTrabajos);
+      document.getElementById('dm-resultado').style.display = 'block';
+      document.getElementById('dm-error').style.display   = 'none';
+
+      const infoEl = document.getElementById('dm-excel-info');
+      infoEl.textContent = '✓ ' + file.name + ' — ' + trabajos.length + ' fila' + (trabajos.length !== 1 ? 's' : '') + ' cargada' + (trabajos.length !== 1 ? 's' : '');
+      infoEl.style.display = 'block';
+      input.value = '';
+    } catch(err) {
+      toast('Error al leer el Excel: ' + err.message, 'err');
+      input.value = '';
+    }
+  };
+  reader.readAsArrayBuffer(file);
 }
 
 // ============================================================
