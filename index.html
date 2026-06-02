@@ -1870,7 +1870,7 @@ function renderTablaMultiple(trabajos) {
           </select>
         </div>
         <div>
-          <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;font-family:var(--font-mono);text-transform:uppercase">Mecánico${t.legajoInvalido ? \` <span style="color:var(--urg);font-size:10px">· legajo ${t.legajoExcel} no encontrado</span>\` : ''}</label>
+          <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;font-family:var(--font-mono);text-transform:uppercase">Mecánico${t.legajoInvalido ? ` <span style="color:var(--urg);font-size:10px">· legajo ${t.legajoExcel} no encontrado</span>` : ''}</label>
           <select onchange="dmTrabajos[${i}].legajo=this.value" style="width:100%;font-size:13px${t.legajoInvalido ? ';border-color:var(--urg)' : ''}">
             <option value="">Sin asignar</option>
             ${tecnicos.map(t2 => `<option value="${t2.legajo}" ${t2.legajo === t.legajo ? 'selected' : ''}>${t2.legajo} — ${t2.nombre}</option>`).join('')}
