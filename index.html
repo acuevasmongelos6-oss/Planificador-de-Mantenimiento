@@ -1816,10 +1816,23 @@ function renderTablaMultiple(trabajos) {
           <input type="text" value="${t.descripcion || ''}" onchange="dmTrabajos[${i}].descripcion=this.value" style="width:100%;font-size:13px">
         </div>
         <div>
-          <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;font-family:var(--font-mono);text-transform:uppercase">Sector</label>
-          <select onchange="dmTrabajos[${i}].sector=this.value" style="width:100%;font-size:13px">
+          <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;font-family:var(--font-mono);text-transform:uppercase">Sector${!t.sector && t.sugerencias && t.sugerencias.length ? ' <span style=\'color:#f0a500\'>· IA sugiere</span>' : ''}</label>
+          <select onchange="dmTrabajos[${i}].sector=this.value" style="width:100%;font-size:13px${!t.sector && t.sugerencias && t.sugerencias.length ? ';border-color:#f0a500' : ''}">
             <option value="">Seleccionar...</option>
-            ${sectores.map(s => `<option value="${s}" ${s === t.sector ? 'selected' : ''}>${s}</option>`).join('')}
+            ${(() => {
+              if (t.sector) {
+                return sectores.map(s => `<option value="${s}" ${s === t.sector ? 'selected' : ''}>${s}</option>`).join('');
+              }
+              const sugs = (t.sugerencias || []);
+              const resto = sectores.filter(s => !sugs.includes(s));
+              let opts = '';
+              if (sugs.length) {
+                opts += sugs.map(s => `<option value="${s}">${s}</option>`).join('');
+                opts += `<option disabled>─────────────────</option>`;
+              }
+              opts += resto.map(s => `<option value="${s}">${s}</option>`).join('');
+              return opts;
+            })()}
           </select>
         </div>
         <div>
@@ -1850,8 +1863,12 @@ async function confirmarMultiple() {
   const validos = dmTrabajos.filter(t => t.descripcion && t.sector);
   if (!validos.length) { toast('Completá al menos descripción y sector en cada trabajo', 'err'); return; }
 
+  const esExcel = dmTrabajos.some(t => t.sectorExcel !== undefined);
+
   showLoading('Creando trabajos...');
   let creados = 0;
+  const duplicados = [];
+
   for (const t of validos) {
     try {
       const res = await callScript('crearTrabajo', {
@@ -1861,93 +1878,145 @@ async function confirmarMultiple() {
         mecanicos: t.legajo ? [t.legajo] : [],
         prioridad: 'Normal',
         os_sap: t.os_sap || '',
-        fechaReferencia: t.fechaReferencia || ''
+        fechaReferencia: t.fechaReferencia || '',
+        chequearDuplicado: esExcel ? true : false
       });
-      if (res.ok) creados++;
+      if (res.ok) {
+        creados++;
+      } else if (res.duplicado) {
+        duplicados.push(t.descripcion);
+      }
     } catch(e) {}
   }
-  hideLoading();
-  toast(creados + ' trabajo' + (creados !== 1 ? 's' : '') + ' creado' + (creados !== 1 ? 's' : '') + ' ✓', 'ok');
-  cerrarDictadoMultiple();
 
+  hideLoading();
+
+  if (duplicados.length === 0) {
+    toast(creados + ' trabajo' + (creados !== 1 ? 's' : '') + ' creado' + (creados !== 1 ? 's' : '') + ' ✓', 'ok');
+  } else {
+    const msgCreados = creados + ' trabajo' + (creados !== 1 ? 's' : '') + ' creado' + (creados !== 1 ? 's' : '');
+    const msgDup = duplicados.length + ' duplicado' + (duplicados.length !== 1 ? 's' : '') + ' omitido' + (duplicados.length !== 1 ? 's' : '');
+    toast(msgCreados + ' · ' + msgDup, 'ok');
+    mostrarDuplicados(duplicados);
+  }
+
+  cerrarDictadoMultiple();
   await cargarDatos();
+}
+
+function mostrarDuplicados(lista) {
+  const prev = document.getElementById('dm-dup-aviso');
+  if (prev) prev.remove();
+
+  const div = document.createElement('div');
+  div.id = 'dm-dup-aviso';
+  div.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--bg2);border:1px solid var(--warn);border-radius:10px;padding:14px 18px;max-width:480px;width:90%;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.3)';
+  div.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
+    '<span style="font-size:13px;font-weight:500;color:var(--warn)">⚠ Trabajos duplicados omitidos</span>' +
+    '<button onclick="this.parentElement.parentElement.remove()" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:16px">✕</button>' +
+    '</div>' +
+    '<ul style="margin:0;padding-left:16px;font-size:12px;color:var(--text2);font-family:var(--font-mono)">' +
+    lista.map(d => '<li style="margin-bottom:3px">' + d + '</li>').join('') +
+    '</ul>';
+  document.body.appendChild(div);
+  setTimeout(() => { if (div.parentElement) div.remove(); }, 8000);
 }
 
 // ============================================================
 // CARGAR EXCEL EN DICTADO MÚLTIPLE
 // ============================================================
-function cargarExcelMultiple(input) {
+function parsearFechaExcel(fechaRaw) {
+  let fechaStr = '';
+  if (fechaRaw instanceof Date && !isNaN(fechaRaw)) {
+    const yy = fechaRaw.getFullYear();
+    const mm = String(fechaRaw.getMonth() + 1).padStart(2, '0');
+    const dd = String(fechaRaw.getDate()).padStart(2, '0');
+    fechaStr = yy + '-' + mm + '-' + dd;
+  } else if (typeof fechaRaw === 'number' && fechaRaw > 1000) {
+    const d = new Date(Math.round((fechaRaw - 25569) * 86400 * 1000));
+    fechaStr = d.getUTCFullYear() + '-' + String(d.getUTCMonth()+1).padStart(2,'0') + '-' + String(d.getUTCDate()).padStart(2,'0');
+  } else if (typeof fechaRaw === 'string' && fechaRaw.trim()) {
+    const parts = fechaRaw.trim().split(/[\/\-]/);
+    if (parts.length === 3) {
+      fechaStr = parts[0].length === 4
+        ? parts[0] + '-' + parts[1].padStart(2,'0') + '-' + parts[2].padStart(2,'0')
+        : parts[2] + '-' + parts[1].padStart(2,'0') + '-' + parts[0].padStart(2,'0');
+    }
+  }
+  return fechaStr;
+}
+
+async function cargarExcelMultiple(input) {
   const file = input.files[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = function(e) {
+  reader.onload = async function(e) {
     try {
-      const data  = new Uint8Array(e.target.result);
-      const wb    = XLSX.read(data, { type: 'array', cellDates: true });
-      const ws    = wb.Sheets[wb.SheetNames[0]];
-      const rows  = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+      const data = new Uint8Array(e.target.result);
+      const wb   = XLSX.read(data, { type: 'array', cellDates: true });
+      const ws   = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
 
-      // Saltar fila de headers (fila 0), procesar desde fila 1
-      // Col A=0(Plan) B=1(OS) C=2(Desc) D=3(Sector) E=4(Legajo) H=7(Fecha)
+      const norm = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
       const trabajos = [];
+
       for (let i = 1; i < rows.length; i++) {
         const row  = rows[i];
         const desc = (row[2] || '').toString().trim();
         const sec  = (row[3] || '').toString().trim();
         if (!desc && !sec) continue;
 
-        const legajoRaw = (row[4] || '').toString().trim();
-        const osRaw     = (row[1] || '').toString().trim();
-        const fechaRaw  = row[7];
-
-        // Normalizar fecha
-        let fechaStr = '';
-        if (fechaRaw instanceof Date && !isNaN(fechaRaw)) {
-          const yy = fechaRaw.getFullYear();
-          const mm = String(fechaRaw.getMonth() + 1).padStart(2, '0');
-          const dd = String(fechaRaw.getDate()).padStart(2, '0');
-          fechaStr = yy + '-' + mm + '-' + dd;
-        } else if (typeof fechaRaw === 'number' && fechaRaw > 1000) {
-          // Número serial de Excel
-          const d = new Date(Math.round((fechaRaw - 25569) * 86400 * 1000));
-          const yy = d.getUTCFullYear();
-          const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
-          const dd = String(d.getUTCDate()).padStart(2, '0');
-          fechaStr = yy + '-' + mm + '-' + dd;
-        } else if (typeof fechaRaw === 'string' && fechaRaw.trim()) {
-          // Intentar parsear dd/MM/yyyy o yyyy-MM-dd
-          const parts = fechaRaw.trim().split(/[\/\-]/);
-          if (parts.length === 3) {
-            if (parts[0].length === 4) {
-              fechaStr = parts[0] + '-' + parts[1].padStart(2,'0') + '-' + parts[2].padStart(2,'0');
-            } else {
-              fechaStr = parts[2] + '-' + parts[1].padStart(2,'0') + '-' + parts[0].padStart(2,'0');
-            }
-          }
-        }
+        const secNorm  = norm(sec);
+        const secExact = sectores.find(s => norm(s) === secNorm) || '';
 
         trabajos.push({
-          descripcion:    desc,
-          sector:         sec,
-          legajo:         legajoRaw,
-          os_sap:         osRaw,
-          fechaReferencia: fechaStr
+          descripcion:     desc,
+          sector:          secExact,
+          sectorExcel:     sec,           // guardamos el original del Excel
+          sugerencias:     [],            // se llenará con IA si no hay match exacto
+          legajo:          (row[4] || '').toString().trim(),
+          os_sap:          (row[1] || '').toString().trim(),
+          fechaReferencia: parsearFechaExcel(row[7])
         });
       }
 
       if (!trabajos.length) {
         toast('No se encontraron filas con datos en el Excel', 'err');
-        input.value = '';
-        return;
+        input.value = ''; return;
+      }
+
+      // Sectores sin match exacto → pedir sugerencias a IA en una sola llamada
+      const sinMatch = [...new Set(trabajos.filter(t => !t.sector).map(t => t.sectorExcel))];
+      if (sinMatch.length && checkOnline()) {
+        const infoEl = document.getElementById('dm-excel-info');
+        infoEl.textContent = '⟳ Buscando sectores similares con IA...';
+        infoEl.style.display = 'block';
+
+        try {
+          const res = await callScript('mapearSectoresExcel', { sectoresExcel: sinMatch });
+          if (res.ok && res.data.mapeo) {
+            const mapeo = res.data.mapeo;
+            trabajos.forEach(t => {
+              if (!t.sector && mapeo[t.sectorExcel]) {
+                t.sugerencias = mapeo[t.sectorExcel];
+              }
+            });
+          }
+        } catch(_) {}
       }
 
       dmTrabajos = trabajos;
       renderTablaMultiple(dmTrabajos);
       document.getElementById('dm-resultado').style.display = 'block';
-      document.getElementById('dm-error').style.display   = 'none';
+      document.getElementById('dm-error').style.display = 'none';
 
+      const sinSector  = trabajos.filter(t => !t.sector).length;
+      const conSugeren = trabajos.filter(t => !t.sector && t.sugerencias.length).length;
       const infoEl = document.getElementById('dm-excel-info');
-      infoEl.textContent = '✓ ' + file.name + ' — ' + trabajos.length + ' fila' + (trabajos.length !== 1 ? 's' : '') + ' cargada' + (trabajos.length !== 1 ? 's' : '');
+      let msg = '✓ ' + file.name + ' — ' + trabajos.length + ' fila' + (trabajos.length !== 1 ? 's' : '') + ' cargada' + (trabajos.length !== 1 ? 's' : '');
+      if (sinSector) msg += ' · ' + sinSector + ' sector' + (sinSector !== 1 ? 'es' : '') + ' sin match exacto';
+      if (conSugeren) msg += ' (' + conSugeren + ' con sugerencias IA)';
+      infoEl.textContent = msg;
       infoEl.style.display = 'block';
       input.value = '';
     } catch(err) {
