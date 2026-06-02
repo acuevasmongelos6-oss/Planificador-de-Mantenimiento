@@ -1851,9 +1851,9 @@ function renderTablaMultiple(trabajos) {
           </select>
         </div>
         <div>
-          <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;font-family:var(--font-mono);text-transform:uppercase">Mecánico</label>
-          <select onchange="dmTrabajos[${i}].legajo=this.value" style="width:100%;font-size:13px">
-            <option value="">Seleccionar...</option>
+          <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;font-family:var(--font-mono);text-transform:uppercase">Mecánico${t.legajoInvalido ? \` <span style="color:var(--urg);font-size:10px">· legajo ${t.legajoExcel} no encontrado</span>\` : ''}</label>
+          <select onchange="dmTrabajos[${i}].legajo=this.value" style="width:100%;font-size:13px${t.legajoInvalido ? ';border-color:var(--urg)' : ''}">
+            <option value="">Sin asignar</option>
             ${tecnicos.map(t2 => `<option value="${t2.legajo}" ${t2.legajo === t.legajo ? 'selected' : ''}>${t2.legajo} — ${t2.nombre}</option>`).join('')}
           </select>
         </div>
@@ -2002,12 +2002,20 @@ async function cargarExcelMultiple(input) {
         const secNorm  = norm(sec);
         const secExact = sectores.find(s => norm(s) === secNorm) || '';
 
+        // Validar legajo contra lista de técnicos
+        const legajoRaw   = (row[4] || '').toString().trim();
+        const legajoValido = tecnicos.find(t => t.legajo === legajoRaw);
+        const legajoFinal  = legajoValido ? legajoRaw : '';
+        const legajoInvalido = legajoRaw && !legajoValido; // tenía algo pero no matchea
+
         trabajos.push({
           descripcion:     desc,
           sector:          secExact,
-          sectorExcel:     sec,           // guardamos el original del Excel
-          sugerencias:     [],            // se llenará con IA si no hay match exacto
-          legajo:          (row[4] || '').toString().trim(),
+          sectorExcel:     sec,
+          sugerencias:     [],
+          legajo:          legajoFinal,
+          legajoInvalido:  legajoInvalido,   // para mostrar advertencia en tarjeta
+          legajoExcel:     legajoRaw,        // valor original del Excel
           os_sap:          (row[1] || '').toString().trim(),
           fechaReferencia: parsearFechaExcel(row[7])
         });
@@ -2043,12 +2051,14 @@ async function cargarExcelMultiple(input) {
       document.getElementById('dm-resultado').style.display = 'block';
       document.getElementById('dm-error').style.display = 'none';
 
-      const sinSector  = trabajos.filter(t => !t.sector).length;
-      const conSugeren = trabajos.filter(t => !t.sector && t.sugerencias.length).length;
+      const sinSector    = trabajos.filter(t => !t.sector).length;
+      const conSugeren   = trabajos.filter(t => !t.sector && t.sugerencias.length).length;
+      const legajosBad   = trabajos.filter(t => t.legajoInvalido).length;
       const infoEl = document.getElementById('dm-excel-info');
       let msg = '✓ ' + file.name + ' — ' + trabajos.length + ' fila' + (trabajos.length !== 1 ? 's' : '') + ' cargada' + (trabajos.length !== 1 ? 's' : '');
       if (sinSector) msg += ' · ' + sinSector + ' sector' + (sinSector !== 1 ? 'es' : '') + ' sin match exacto';
       if (conSugeren) msg += ' (' + conSugeren + ' con sugerencias IA)';
+      if (legajosBad)  msg += ' · ' + legajosBad + ' legajo' + (legajosBad !== 1 ? 's' : '') + ' inválido' + (legajosBad !== 1 ? 's' : '');
       infoEl.textContent = msg;
       infoEl.style.display = 'block';
       input.value = '';
