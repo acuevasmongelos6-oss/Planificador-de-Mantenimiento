@@ -1728,6 +1728,7 @@ function addIAMsg(text, role) {
 // DICTADO MULTIPLE
 // ============================================================
 let dmTrabajos = [];
+let dmDesdeExcel = false;
 
 function abrirDictadoMultiple() {
   document.getElementById('screen-multiple').style.display = 'block';
@@ -1738,6 +1739,7 @@ function abrirDictadoMultiple() {
 }
 
 function cerrarDictadoMultiple() {
+  dmDesdeExcel = false;
   document.getElementById('screen-multiple').style.display = 'none';
 }
 
@@ -1895,7 +1897,7 @@ async function confirmarMultiple() {
   const validos = dmTrabajos.filter(t => t.descripcion && t.sector);
   if (!validos.length) { toast('Completá al menos descripción y sector en cada trabajo', 'err'); return; }
 
-  const esExcel = dmTrabajos.some(t => t.sectorExcel !== undefined);
+  const esExcel = dmDesdeExcel;
   showLoading('Creando trabajos...');
 
   if (esExcel) {
@@ -2009,6 +2011,7 @@ async function cargarExcelMultiple(input) {
   const file = input.files[0];
   if (!file) return;
   const reader = new FileReader();
+  dmDesdeExcel = true;
   reader.onload = async function(e) {
     try {
       const data = new Uint8Array(e.target.result);
