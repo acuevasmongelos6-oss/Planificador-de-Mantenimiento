@@ -958,9 +958,24 @@ function checkOnline() {
 }
 
 async function callScript(accion, data = {}) {
+  const payload = { accion, ...data };
+  const body    = JSON.stringify(payload);
+
+  // Apps Script tiene límite ~8KB en URL; si el payload es grande usamos POST
+  if (body.length > 2000) {
+    const resp = await fetch(URL_PLAN, {
+      method: 'POST',
+      redirect: 'follow',
+      headers: { 'Content-Type': 'text/plain' },
+      body: body
+    });
+    return resp.json();
+  }
+
+  // Payload pequeño → GET normal (compatible con todos los endpoints existentes)
   const flat = {};
   for (const [k, v] of Object.entries(data)) {
-    flat[k] = Array.isArray(v) ? JSON.stringify(v) : (v ?? '');
+    flat[k] = Array.isArray(v) || typeof v === 'object' ? JSON.stringify(v) : (v ?? '');
   }
   const params = new URLSearchParams({ accion, ...flat });
   const resp = await fetch(URL_PLAN + '?' + params.toString(), {
