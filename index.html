@@ -1864,40 +1864,58 @@ async function confirmarMultiple() {
   if (!validos.length) { toast('Completá al menos descripción y sector en cada trabajo', 'err'); return; }
 
   const esExcel = dmTrabajos.some(t => t.sectorExcel !== undefined);
-
   showLoading('Creando trabajos...');
-  let creados = 0;
-  const duplicados = [];
 
-  for (const t of validos) {
+  if (esExcel) {
+    // BATCH: una sola llamada con todos los trabajos
     try {
-      const res = await callScript('crearTrabajo', {
-        descripcion: t.descripcion,
-        sector: t.sector,
-        asignar: t.legajo ? true : false,
-        mecanicos: t.legajo ? [t.legajo] : [],
-        prioridad: 'Normal',
-        os_sap: t.os_sap || '',
-        fechaReferencia: t.fechaReferencia || '',
-        chequearDuplicado: esExcel ? true : false
-      });
+      const payload = validos.map(t => ({
+        descripcion:     t.descripcion,
+        sector:          t.sector,
+        mecanicos:       t.legajo ? [t.legajo] : [],
+        prioridad:       'Normal',
+        os_sap:          t.os_sap || '',
+        fechaReferencia: t.fechaReferencia || ''
+      }));
+      const res = await callScript('crearTrabajosBatch', { trabajos: payload });
+      hideLoading();
       if (res.ok) {
-        creados++;
-      } else if (res.duplicado) {
-        duplicados.push(t.descripcion);
+        const creados    = res.data.creados;
+        const duplicados = res.data.duplicados || [];
+        if (!duplicados.length) {
+          toast(creados + ' trabajo' + (creados !== 1 ? 's' : '') + ' creado' + (creados !== 1 ? 's' : '') + ' ✓', 'ok');
+        } else {
+          const msgC = creados + ' trabajo' + (creados !== 1 ? 's' : '') + ' creado' + (creados !== 1 ? 's' : '');
+          const msgD = duplicados.length + ' duplicado' + (duplicados.length !== 1 ? 's' : '') + ' omitido' + (duplicados.length !== 1 ? 's' : '');
+          toast(msgC + ' · ' + msgD, 'ok');
+          mostrarDuplicados(duplicados);
+        }
+      } else {
+        toast('Error al crear trabajos: ' + (res.error || ''), 'err');
       }
-    } catch(e) {}
-  }
-
-  hideLoading();
-
-  if (duplicados.length === 0) {
-    toast(creados + ' trabajo' + (creados !== 1 ? 's' : '') + ' creado' + (creados !== 1 ? 's' : '') + ' ✓', 'ok');
+    } catch(e) {
+      hideLoading();
+      toast('Error de conexión', 'err');
+    }
   } else {
-    const msgCreados = creados + ' trabajo' + (creados !== 1 ? 's' : '') + ' creado' + (creados !== 1 ? 's' : '');
-    const msgDup = duplicados.length + ' duplicado' + (duplicados.length !== 1 ? 's' : '') + ' omitido' + (duplicados.length !== 1 ? 's' : '');
-    toast(msgCreados + ' · ' + msgDup, 'ok');
-    mostrarDuplicados(duplicados);
+    // INDIVIDUAL: dictado manual, llamada por trabajo (comportamiento original)
+    let creados = 0;
+    for (const t of validos) {
+      try {
+        const res = await callScript('crearTrabajo', {
+          descripcion: t.descripcion,
+          sector: t.sector,
+          asignar: t.legajo ? true : false,
+          mecanicos: t.legajo ? [t.legajo] : [],
+          prioridad: 'Normal',
+          os_sap: t.os_sap || '',
+          fechaReferencia: t.fechaReferencia || ''
+        });
+        if (res.ok) creados++;
+      } catch(e) {}
+    }
+    hideLoading();
+    toast(creados + ' trabajo' + (creados !== 1 ? 's' : '') + ' creado' + (creados !== 1 ? 's' : '') + ' ✓', 'ok');
   }
 
   cerrarDictadoMultiple();
