@@ -1245,9 +1245,9 @@ function renderSectionOS(items) {
 function renderSectionFin(items) {
   const el = document.getElementById('sec-fin');
   if (!items.length) { el.innerHTML = '<div class="empty-state">Sin tareas finalizadas pendientes de notificar</div>'; return; }
-  const colHdr = '<div style="display:flex;justify-content:flex-end;padding:4px 16px;border-bottom:1px solid var(--border)"><span style="font-size:10px;font-family:var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--text3)">Notificada SAP</span></div>';
+  const colHdr = '<div style="display:flex;justify-content:flex-end;padding:4px 16px 2px;border-bottom:1px solid var(--border)"><span style="font-size:10px;font-family:var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--text3)">Notificada SAP</span></div>';
   const rows = items.map(t => {
-    const titulo = t.descripcion.includes('_CM') ? t.descripcion.substring(0, t.descripcion.indexOf('_CM')).replace(/_/g,' ') : t.descripcion.split('_').join(' ');
+    const titulo = t.descripcion.includes('_CM') ? t.descripcion.substring(0, t.descripcion.indexOf('_CM')).replace(/_/g,' ') + ' — ' + t.descripcion.substring(t.descripcion.lastIndexOf('_')+1) : t.descripcion.split('_').join(' ');
     const mecs   = nombresToStr(t.mecanicos);
     const pClass = prioClass(t.prioridad);
     return `
@@ -1261,7 +1261,8 @@ function renderSectionFin(items) {
         </div>
       </div>
       <span class="prio ${pClass} prio-static">${t.prioridad || 'Normal'}</span>
-      <input type="checkbox" style="width:16px;height:16px;cursor:pointer;accent-color:var(--ok)" onchange="toggleNotificadoSAP('${t.codigo}', ${t.fila_plan}, this.checked)">
+      <span style="font-size:11px;color:var(--text3);font-style:italic">No editable</span>
+      <input type="checkbox" style="width:16px;height:16px;cursor:pointer;accent-color:var(--ok);margin-left:4px" onchange="toggleNotificadoSAP('${t.codigo}', ${t.fila_plan}, this.checked)">
     </div>`;
   }).join('');
   el.innerHTML = colHdr + rows;
@@ -1313,6 +1314,16 @@ function exportarFinalizadas() {
     const s = String(val).trim();
     if (!s || s === '0') return '';
     if (/^\d{4}-\d{2}-\d{2}$/.test(s)) { const [y,m,d] = s.split('-'); return d+'.'+m+'.'+y; }
+    // Objeto Date o string de fecha
+    try {
+      const d = new Date(val);
+      if (!isNaN(d.getTime())) {
+        const yy = d.getFullYear();
+        const mm = String(d.getMonth()+1).padStart(2,'0');
+        const dd = String(d.getDate()).padStart(2,'0');
+        return dd+'.'+mm+'.'+yy;
+      }
+    } catch(e) {}
     return s;
   };
   const fmtHora = h => { if (!h) return ''; const p = String(h).split(':'); return p[0].padStart(2,'0')+':'+(p[1]||'00').padStart(2,'0')+':00'; };
@@ -1321,17 +1332,21 @@ function exportarFinalizadas() {
     const d = toMin(fin) - toMin(ini); return d > 0 ? d/60 : 0;
   };
 
-  // Cruzar con mecsDetalle para obtener datos de Operaciones
+  // Una fila por mecánico usando datos de Operaciones
   const filas = [];
   pendientes.forEach(t => {
     (t.mecsDetalle || []).forEach(m => {
+      const fecha = normF(m.fecha_real || t.fechaRef || '');
+      const ini   = fmtHora(m.hora_inicio || '');
+      const fin   = fmtHora(m.hora_fin   || '');
+      const hs    = m.horas ? parseFloat(parseFloat(m.horas).toFixed(1)) : calcH(m.hora_inicio||'', m.hora_fin||'');
       filas.push([
         t.os_sap ? parseInt(t.os_sap) || t.os_sap : '',
-        normF(t.fechaRef),
-        normF(t.fechaRef),
-        fmtHora(m.hora_inicio || ''),
-        fmtHora(m.hora_fin   || ''),
-        m.horas ? parseFloat(parseFloat(m.horas).toFixed(1)) : 0,
+        fecha,
+        fecha,
+        ini,
+        fin,
+        hs,
         m.legajo ? parseInt(m.legajo) || m.legajo : ''
       ]);
     });
