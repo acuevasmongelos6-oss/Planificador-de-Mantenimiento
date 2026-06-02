@@ -1911,9 +1911,7 @@ async function confirmarMultiple() {
         os_sap:          t.os_sap || '',
         fechaReferencia: t.fechaReferencia || ''
       }));
-      console.log('[BATCH] esExcel:', esExcel, '| payload size:', JSON.stringify(payload).length, 'bytes | trabajos:', payload.length);
       const res = await callScript('crearTrabajosBatch', { trabajos: payload });
-      console.log('[BATCH] respuesta:', JSON.stringify(res).slice(0, 300));
       hideLoading();
       if (res.ok) {
         const creados    = res.data.creados;
