@@ -1139,7 +1139,7 @@ function renderSectionPend(items) {
   const el = document.getElementById('sec-pend');
   if (!items.length) { el.innerHTML = '<div class="empty-state">Sin tareas pendientes</div>'; return; }
   el.innerHTML = items.map(item => {
-    const isNC = item.tipo === 'NC' || !item.tipo;
+    const isNC = item.tipo === 'NC';
     const tipo = isNC ? 'NC' : 'CM';
     const codigo = item.codigo;
     // Para CM: descripcion_sector_CMfecha_ms -> mostrar desc y sector con espacios
