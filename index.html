@@ -22,6 +22,8 @@
   --baja:     #4a9e6b;
   --nc-color: #4f7cff;
   --cm-color: #7b5ea7;
+  --ok:       #2ea043;
+  --warn:     #d29922;
   --radius:   10px;
   --font-mono: 'IBM Plex Mono', monospace;
   --font-sans: 'IBM Plex Sans', sans-serif;
@@ -923,6 +925,7 @@ input[type=text]:focus, input[type=date]:focus, select:focus, textarea:focus {
 // CONFIG
 // ============================================================
 const URL_PLAN = 'https://script.google.com/macros/s/AKfycbyc3QGQMkCvcsdYuQMj9Dh9lM0TC9BjBX2qkivi2IWyTIsfmPbtKl74y_6Tc3AZPQKQ/exec';
+const API_TOKEN = '';
 const CLAUDE_MODEL = 'claude-sonnet-4-20250514';
 
 // ============================================================
@@ -936,10 +939,14 @@ let ncs        = [];
 let currentCodigo   = null;
 let currentAccion   = null;
 let iaContext  = [];
+let enviando   = false; // guard anti doble-submit en confirmaciones de modales
 
 // ============================================================
 // HELPERS
 // ============================================================
+function escHtml(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function escJs(s){return String(s??'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'\\"').replace(/</g,'\\x3c');}
+
 function showLoading(msg) {
   document.getElementById('loading').style.display = 'flex';
   document.getElementById('loading-msg').textContent = msg || 'Cargando...';
@@ -970,7 +977,7 @@ function checkOnline() {
 }
 
 async function callScript(accion, data = {}) {
-  const payload = { accion, ...data };
+  const payload = { accion, token: API_TOKEN, ...data };
   const body    = JSON.stringify(payload);
 
   // Apps Script tiene límite ~8KB en URL; si el payload es grande usamos POST
@@ -981,6 +988,7 @@ async function callScript(accion, data = {}) {
       headers: { 'Content-Type': 'text/plain' },
       body: body
     });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
     return resp.json();
   }
 
@@ -989,11 +997,12 @@ async function callScript(accion, data = {}) {
   for (const [k, v] of Object.entries(data)) {
     flat[k] = Array.isArray(v) || typeof v === 'object' ? JSON.stringify(v) : (v ?? '');
   }
-  const params = new URLSearchParams({ accion, ...flat });
+  const params = new URLSearchParams({ accion, token: API_TOKEN, ...flat });
   const resp = await fetch(URL_PLAN + '?' + params.toString(), {
     method: 'GET',
     redirect: 'follow'
   });
+  if (!resp.ok) throw new Error('HTTP ' + resp.status);
   return resp.json();
 }
 
@@ -1013,7 +1022,8 @@ function nombresToStr(mecs) {
 }
 
 function today() {
-  return new Date().toISOString().split('T')[0];
+  const n = new Date();
+  return n.getFullYear() + '-' + String(n.getMonth() + 1).padStart(2, '0') + '-' + String(n.getDate()).padStart(2, '0');
 }
 
 // ============================================================
@@ -1159,15 +1169,15 @@ function renderSectionPend(items) {
     return `
     <div class="task-row">
       <div class="task-main">
-        <div class="task-title">${titulo}</div>
+        <div class="task-title">${escHtml(titulo)}</div>
         <div class="task-sub">
           <span class="badge badge-${tipo.toLowerCase()}">${tipo}</span>
-          ${sub ? `<span>${sub}</span>` : ''}
-          <span style="color:var(--text3);font-size:10px">${(() => { const cm = codigo.indexOf('_CM'); const ri = codigo.lastIndexOf('_RI'); if(cm > 0) return 'CM' + codigo.substring(cm+3); if(ri > 0) return 'RI' + codigo.substring(ri+3); return codigo.split('_').pop(); })()}</span>
+          ${sub ? `<span>${escHtml(sub)}</span>` : ''}
+          <span style="color:var(--text3);font-size:10px">${escHtml((() => { const cm = codigo.indexOf('_CM'); const ri = codigo.lastIndexOf('_RI'); if(cm > 0) return 'CM' + codigo.substring(cm+3); if(ri > 0) return 'RI' + codigo.substring(ri+3); return codigo.split('_').pop(); })())}</span>
         </div>
       </div>
-      ${!isNC ? `<button class="btn btn-sm" onclick="abrirEditar('${codigo}')">Editar</button>` : ''}
-      <button class="btn btn-sm btn-primary" onclick="abrirAsignar('${codigo}','${tipo}')">Asignar</button>
+      ${!isNC ? `<button class="btn btn-sm" onclick="abrirEditar('${escHtml(escJs(codigo))}')">Editar</button>` : ''}
+      <button class="btn btn-sm btn-primary" onclick="abrirAsignar('${escHtml(escJs(codigo))}','${tipo}')">Asignar</button>
     </div>`;
   }).join('');
 }
@@ -1190,16 +1200,16 @@ function renderSectionAsig(items) {
     return `
     <div class="task-row">
       <div class="task-main">
-        <div class="task-title">${titulo}</div>
+        <div class="task-title">${escHtml(titulo)}</div>
         <div class="task-sub">
-          <span class="badge badge-${t.tipo.toLowerCase()}">${t.tipo}</span>
-          <span>${mecs}</span>
+          <span class="badge badge-${escHtml(t.tipo.toLowerCase())}">${escHtml(t.tipo)}</span>
+          <span>${escHtml(mecs)}</span>
           ${estadoBadge}
         </div>
       </div>
-      <span class="prio ${pClass}" onclick="abrirPrioridad('${t.codigo}')">${t.prioridad || 'Normal'}</span>
-      ${!tieneOS ? `<button class="btn btn-sm btn-primary" onclick="abrirOS('${t.codigo}')">Cargar OS</button>` : ''}
-      <button class="btn btn-sm" onclick="abrirEditarAsig('${t.codigo}')">Editar</button>
+      <span class="prio ${pClass}" onclick="abrirPrioridad('${escHtml(escJs(t.codigo))}')">${escHtml(t.prioridad || 'Normal')}</span>
+      ${!tieneOS ? `<button class="btn btn-sm btn-primary" onclick="abrirOS('${escHtml(escJs(t.codigo))}')">Cargar OS</button>` : ''}
+      <button class="btn btn-sm" onclick="abrirEditarAsig('${escHtml(escJs(t.codigo))}')">Editar</button>
     </div>`;
   };
 
@@ -1229,15 +1239,15 @@ function renderSectionOS(items) {
     return `
     <div class="task-row">
       <div class="task-main">
-        <div class="task-title">${titulo}</div>
+        <div class="task-title">${escHtml(titulo)}</div>
         <div class="task-sub">
-          <span class="badge badge-${t.tipo.toLowerCase()}">${t.tipo}</span>
+          <span class="badge badge-${escHtml(t.tipo.toLowerCase())}">${escHtml(t.tipo)}</span>
           ${notif ? '<span class="badge badge-notif">Notificada</span>' : '<span class="badge badge-sinos">Sin notif.</span>'}
-          <span>${mecs}</span>
+          <span>${escHtml(mecs)}</span>
         </div>
       </div>
-      <span class="prio ${pClass}" onclick="abrirPrioridad('${t.codigo}')">${t.prioridad || 'Normal'}</span>
-      <button class="btn btn-sm btn-primary" onclick="abrirOS('${t.codigo}')">Cargar OS</button>
+      <span class="prio ${pClass}" onclick="abrirPrioridad('${escHtml(escJs(t.codigo))}')">${escHtml(t.prioridad || 'Normal')}</span>
+      <button class="btn btn-sm btn-primary" onclick="abrirOS('${escHtml(escJs(t.codigo))}')">Cargar OS</button>
     </div>`;
   }).join('');
 }
@@ -1253,16 +1263,16 @@ function renderSectionFin(items) {
     return `
     <div class="task-row">
       <div class="task-main">
-        <div class="task-title">${titulo}</div>
+        <div class="task-title">${escHtml(titulo)}</div>
         <div class="task-sub">
-          <span class="badge badge-${t.tipo.toLowerCase()}">${t.tipo}</span>
-          <span>${mecs}</span>
-          ${t.os_sap ? `<span>OS: ${t.os_sap}</span>` : ''}
+          <span class="badge badge-${escHtml(t.tipo.toLowerCase())}">${escHtml(t.tipo)}</span>
+          <span>${escHtml(mecs)}</span>
+          ${t.os_sap ? `<span>OS: ${escHtml(t.os_sap)}</span>` : ''}
         </div>
       </div>
-      <span class="prio ${pClass} prio-static">${t.prioridad || 'Normal'}</span>
+      <span class="prio ${pClass} prio-static">${escHtml(t.prioridad || 'Normal')}</span>
       <span style="font-size:11px;color:var(--text3);font-style:italic">No editable</span>
-      <input type="checkbox" style="width:16px;height:16px;cursor:pointer;accent-color:var(--ok);margin-left:4px" onchange="toggleNotificadoSAP('${t.codigo}', ${t.fila_plan}, this.checked)">
+      <input type="checkbox" style="width:16px;height:16px;cursor:pointer;accent-color:var(--ok);margin-left:4px" onchange="toggleNotificadoSAP('${escHtml(escJs(t.codigo))}', ${Number(t.fila_plan) || 0}, this.checked)">
     </div>`;
   }).join('');
   el.innerHTML = colHdr + rows;
@@ -1292,14 +1302,14 @@ function renderSectionNotifSAP(items) {
     return `
     <div class="task-row" style="opacity:.55">
       <div class="task-main">
-        <div class="task-title">${titulo}</div>
+        <div class="task-title">${escHtml(titulo)}</div>
         <div class="task-sub">
-          <span class="badge badge-${t.tipo.toLowerCase()}">${t.tipo}</span>
-          <span>${mecs}</span>
-          ${t.os_sap ? `<span>OS: ${t.os_sap}</span>` : ''}
+          <span class="badge badge-${escHtml(t.tipo.toLowerCase())}">${escHtml(t.tipo)}</span>
+          <span>${escHtml(mecs)}</span>
+          ${t.os_sap ? `<span>OS: ${escHtml(t.os_sap)}</span>` : ''}
         </div>
       </div>
-      <span class="prio ${pClass} prio-static">${t.prioridad || 'Normal'}</span>
+      <span class="prio ${pClass} prio-static">${escHtml(t.prioridad || 'Normal')}</span>
       <span style="font-size:11px;color:var(--ok)">✓ Notificada</span>
     </div>`;
   }).join('');
@@ -1329,7 +1339,11 @@ function exportarFinalizadas() {
   const fmtHora = h => { if (!h) return ''; const p = String(h).split(':'); return p[0].padStart(2,'0')+':'+(p[1]||'00').padStart(2,'0')+':00'; };
   const calcH   = (ini,fin) => {
     const toMin = t => { if (!t) return -1; const s = String(t).replace(/:\d{2}$/, ''); const p = s.split(':'); const h = parseInt(p[0]), m = parseInt(p[1]||0); return isNaN(h)||isNaN(m)?-1:h*60+m; };
-    const d = toMin(fin) - toMin(ini); return d > 0 ? d/60 : 0;
+    const a = toMin(ini), b = toMin(fin);
+    if (a < 0 || b < 0) return 0;
+    let d = b - a;
+    if (d < 0) d += 24 * 60; // turno nocturno: fin al día siguiente
+    return d / 60;
   };
 
   // Una fila por mecánico usando datos de Operaciones
@@ -1357,7 +1371,7 @@ function exportarFinalizadas() {
   const ws = XLSX.utils.aoa_to_sheet(wsData);
   ws['!cols'] = [{wch:14},{wch:12},{wch:12},{wch:12},{wch:12},{wch:10},{wch:10}];
   XLSX.utils.book_append_sheet(wb, ws, 'Notificaciones');
-  const hoy = new Date().toISOString().slice(0,10);
+  const hoy = today();
   XLSX.writeFile(wb, 'NOTIF_SAP_' + hoy + '.xlsx');
   toast('Excel generado ✓', 'ok');
 }
@@ -1378,11 +1392,13 @@ function abrirAsignar(codigo, tipo) {
 }
 
 async function confirmarAsignar() {
+  if (enviando) return;
   if (!checkOnline()) { toast('Sin conexión', 'err'); return; }
   const mecanicos = getMecsFromContainer('asignar-mecs');
   if (!mecanicos.length) { toast('Seleccioná al menos un mecánico', 'err'); return; }
   const prioridad = document.getElementById('asignar-prio').value;
   const fecha     = document.getElementById('asignar-fecha').value;
+  enviando = true;
   showLoading('Asignando...');
   try {
     const res = await callScript('asignarTarea', {
@@ -1399,7 +1415,7 @@ async function confirmarAsignar() {
       toast(res.error || 'Error al asignar', 'err');
     }
   } catch(e) { toast('Error de conexión', 'err'); }
-  hideLoading();
+  finally { enviando = false; hideLoading(); }
 }
 
 // ============================================================
@@ -1437,6 +1453,7 @@ function abrirEditarAsig(codigo) {
 }
 
 async function confirmarDesasignar() {
+  if (enviando) return;
   const tarea = tareas.find(t => t.codigo === currentCodigo);
   if (!tarea) return;
   // Verificar si algún mecánico ya notificó
@@ -1446,6 +1463,7 @@ async function confirmarDesasignar() {
     return;
   }
   if (!checkOnline()) { toast('Sin conexión', 'err'); return; }
+  enviando = true;
   showLoading('Desasignando...');
   try {
     const res = await callScript('desasignarTarea', { codigo: currentCodigo });
@@ -1457,10 +1475,11 @@ async function confirmarDesasignar() {
       toast(res.error || 'Error al desasignar', 'err');
     }
   } catch(e) { toast('Error de conexión', 'err'); }
-  hideLoading();
+  finally { enviando = false; hideLoading(); }
 }
 
 async function confirmarEditar() {
+  if (enviando) return;
   if (!checkOnline()) { toast('Sin conexión', 'err'); return; }
   const tarea = tareas.find(t => t.codigo === currentCodigo);
   if (!tarea) return;
@@ -1469,6 +1488,7 @@ async function confirmarEditar() {
   const mecanicosAgregar = mecsEnForm.filter(m => !mecsActuales.includes(m));
   const mecanicosQuitar  = mecsActuales.filter(m => !mecsEnForm.includes(m));
   const fecha = document.getElementById('editar-fecha').value;
+  enviando = true;
   showLoading('Guardando...');
   try {
     const res = await callScript('editarTarea', {
@@ -1485,7 +1505,7 @@ async function confirmarEditar() {
       toast(res.error || 'Error al editar', 'err');
     }
   } catch(e) { toast('Error de conexión', 'err'); }
-  hideLoading();
+  finally { enviando = false; hideLoading(); }
 }
 
 // ============================================================
@@ -1497,8 +1517,10 @@ function abrirPrioridad(codigo) {
 }
 
 async function setPrioridad(prio) {
+  if (enviando) return;
   if (!checkOnline()) { toast('Sin conexión', 'err'); return; }
   closeModal('modal-prio');
+  enviando = true;
   showLoading('Guardando...');
   try {
     const res = await callScript('cambiarPrioridad', { codigo: currentCodigo, prioridad: prio });
@@ -1509,7 +1531,7 @@ async function setPrioridad(prio) {
       toast(res.error || 'Error', 'err');
     }
   } catch(e) { toast('Error de conexión', 'err'); }
-  hideLoading();
+  finally { enviando = false; hideLoading(); }
 }
 
 // ============================================================
@@ -1532,9 +1554,11 @@ function osInputChange() {
 }
 
 async function confirmarOS() {
+  if (enviando) return;
   if (!checkOnline()) { toast('Sin conexión', 'err'); return; }
   const os = document.getElementById('os-input').value.trim();
   if (!os) { toast('Ingresá el número de OS', 'err'); return; }
+  enviando = true;
   showLoading('Guardando OS...');
   try {
     const res = await callScript('cargarOS', { codigo: currentCodigo, os_sap: os });
@@ -1546,7 +1570,7 @@ async function confirmarOS() {
       toast(res.error || 'Error', 'err');
     }
   } catch(e) { toast('Error de conexión', 'err'); }
-  hideLoading();
+  finally { enviando = false; hideLoading(); }
 }
 
 // ============================================================
@@ -1576,12 +1600,14 @@ function updateCodigo() {
 }
 
 async function guardarNuevo(asignar) {
+  if (enviando) return;
   if (!checkOnline()) { toast('Sin conexión', 'err'); return; }
   const desc   = document.getElementById('nuevo-desc').value.trim();
   const sector = document.getElementById('nuevo-sector').value;
   if (!desc || !sector) { toast('Completá descripción y sector', 'err'); return; }
 
   if (!asignar) {
+    enviando = true;
     showLoading('Guardando...');
     try {
       const res = await callScript('crearTrabajo', { descripcion: desc, sector, asignar: false });
@@ -1594,7 +1620,7 @@ async function guardarNuevo(asignar) {
         await cargarDatos();
       } else { toast(res.error || 'Error', 'err'); }
     } catch(e) { toast('Error de conexión', 'err'); }
-    hideLoading();
+    finally { enviando = false; hideLoading(); }
   } else {
     // Abrir modal de asignación con el nuevo trabajo
     currentCodigo = codigoNuevo;
@@ -1960,7 +1986,7 @@ function renderTablaMultiple(trabajos) {
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;align-items:start">
         <div>
           <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;font-family:var(--font-mono);text-transform:uppercase">Descripción</label>
-          <input type="text" value="${t.descripcion || ''}" onchange="dmTrabajos[${i}].descripcion=this.value" style="width:100%;font-size:13px">
+          <input type="text" value="${escHtml(t.descripcion || '')}" onchange="dmTrabajos[${i}].descripcion=this.value" style="width:100%;font-size:13px">
         </div>
         <div>
           <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;font-family:var(--font-mono);text-transform:uppercase">Sector${!t.sector && t.sugerencias && t.sugerencias.length ? ' <span style=\'color:#f0a500\'>· IA sugiere</span>' : ''}</label>
@@ -1968,36 +1994,36 @@ function renderTablaMultiple(trabajos) {
             <option value="">Seleccionar...</option>
             ${(() => {
               if (t.sector) {
-                return sectores.map(s => `<option value="${s}" ${s === t.sector ? 'selected' : ''}>${s}</option>`).join('');
+                return sectores.map(s => `<option value="${escHtml(s)}" ${s === t.sector ? 'selected' : ''}>${escHtml(s)}</option>`).join('');
               }
               const sugs = (t.sugerencias || []);
               const resto = sectores.filter(s => !sugs.includes(s));
               let opts = '';
               if (sugs.length) {
-                opts += sugs.map(s => `<option value="${s}">${s}</option>`).join('');
+                opts += sugs.map(s => `<option value="${escHtml(s)}">${escHtml(s)}</option>`).join('');
                 opts += `<option disabled>─────────────────</option>`;
               }
-              opts += resto.map(s => `<option value="${s}">${s}</option>`).join('');
+              opts += resto.map(s => `<option value="${escHtml(s)}">${escHtml(s)}</option>`).join('');
               return opts;
             })()}
           </select>
         </div>
         <div>
-          <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;font-family:var(--font-mono);text-transform:uppercase">Mecánico${t.legajoInvalido ? ` <span style="color:var(--urg);font-size:10px">· legajo ${t.legajoExcel} no encontrado</span>` : ''}</label>
+          <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;font-family:var(--font-mono);text-transform:uppercase">Mecánico${t.legajoInvalido ? ` <span style="color:var(--urg);font-size:10px">· legajo ${escHtml(t.legajoExcel)} no encontrado</span>` : ''}</label>
           <select onchange="dmTrabajos[${i}].legajo=this.value" style="width:100%;font-size:13px${t.legajoInvalido ? ';border-color:var(--urg)' : ''}">
             <option value="">Sin asignar</option>
-            ${tecnicos.map(t2 => `<option value="${t2.legajo}" ${t2.legajo === t.legajo ? 'selected' : ''}>${t2.legajo} — ${t2.nombre}</option>`).join('')}
+            ${tecnicos.map(t2 => `<option value="${escHtml(t2.legajo)}" ${t2.legajo === t.legajo ? 'selected' : ''}>${escHtml(t2.legajo)} — ${escHtml(t2.nombre)}</option>`).join('')}
           </select>
         </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;align-items:start">
         <div>
           <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;font-family:var(--font-mono);text-transform:uppercase">OS SAP ${tieneOS ? '<span style="color:var(--ok)">✓</span>' : ''}</label>
-          <input type="text" value="${t.os_sap || ''}" onchange="dmTrabajos[${i}].os_sap=this.value" placeholder="Opcional" style="width:100%;font-size:13px${tieneOS ? ';border-color:var(--ok)' : ''}">
+          <input type="text" value="${escHtml(t.os_sap || '')}" onchange="dmTrabajos[${i}].os_sap=this.value" placeholder="Opcional" style="width:100%;font-size:13px${tieneOS ? ';border-color:var(--ok)' : ''}">
         </div>
         <div>
           <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px;font-family:var(--font-mono);text-transform:uppercase">Fecha de referencia</label>
-          <input type="date" value="${t.fechaReferencia || ''}" onchange="dmTrabajos[${i}].fechaReferencia=this.value" style="width:100%;font-size:13px">
+          <input type="date" value="${escHtml(t.fechaReferencia || '')}" onchange="dmTrabajos[${i}].fechaReferencia=this.value" style="width:100%;font-size:13px">
         </div>
       </div>
       <button class="btn btn-sm" style="margin-top:10px;color:var(--urg);border-color:var(--urg)" onclick="dmTrabajos.splice(${i},1);renderTablaMultiple(dmTrabajos)">✕ Quitar</button>
@@ -2006,11 +2032,13 @@ function renderTablaMultiple(trabajos) {
 }
 
 async function confirmarMultiple() {
+  if (enviando) return;
   if (!checkOnline()) { toast('Sin conexión', 'err'); return; }
   const validos = dmTrabajos.filter(t => t.descripcion && t.sector);
   if (!validos.length) { toast('Completá al menos descripción y sector en cada trabajo', 'err'); return; }
 
   const esExcel = dmDesdeExcel;
+  enviando = true;
   showLoading('Creando trabajos...');
 
   if (esExcel) {
@@ -2054,6 +2082,7 @@ async function confirmarMultiple() {
   } else {
     // INDIVIDUAL: dictado manual, llamada por trabajo (comportamiento original)
     let creados = 0;
+    const fallidos = [];
     for (const t of validos) {
       try {
         const res = await callScript('crearTrabajo', {
@@ -2065,14 +2094,27 @@ async function confirmarMultiple() {
           os_sap: t.os_sap || '',
           fechaReferencia: t.fechaReferencia || ''
         });
-        if (res.ok) creados++;
-      } catch(e) {}
+        if (res.ok) {
+          creados++;
+        } else {
+          fallidos.push(t.descripcion);
+          console.error('Fallo al crear trabajo:', t.descripcion, res.error || res);
+        }
+      } catch(e) {
+        fallidos.push(t.descripcion);
+        console.error('Fallo al crear trabajo:', t.descripcion, e);
+      }
     }
     hideLoading();
-    toast(creados + ' trabajo' + (creados !== 1 ? 's' : '') + ' creado' + (creados !== 1 ? 's' : '') + ' ✓', 'ok');
+    if (fallidos.length) {
+      toast(creados + ' trabajo' + (creados !== 1 ? 's' : '') + ' creado' + (creados !== 1 ? 's' : '') + ', ' + fallidos.length + (fallidos.length !== 1 ? ' fallaron' : ' falló') + ' (ver consola)', 'err');
+    } else {
+      toast(creados + ' trabajo' + (creados !== 1 ? 's' : '') + ' creado' + (creados !== 1 ? 's' : '') + ' ✓', 'ok');
+    }
     await recargarTareas(); // solo para dictado manual
   }
 
+  enviando = false;
   cerrarDictadoMultiple();
 }
 
@@ -2088,7 +2130,7 @@ function mostrarDuplicados(lista) {
     '<button onclick="this.parentElement.parentElement.remove()" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:16px">✕</button>' +
     '</div>' +
     '<ul style="margin:0;padding-left:16px;font-size:12px;color:var(--text2);font-family:var(--font-mono)">' +
-    lista.map(d => '<li style="margin-bottom:3px">' + d + '</li>').join('') +
+    lista.map(d => '<li style="margin-bottom:3px">' + escHtml(d) + '</li>').join('') +
     '</ul>';
   document.body.appendChild(div);
   setTimeout(() => { if (div.parentElement) div.remove(); }, 8000);
